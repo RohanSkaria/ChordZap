@@ -21,12 +21,9 @@ test('renders movie title and correct number of reviews', async () => {
         </MemoryRouter>
     );
 
-    // Wait for the movie title to appear
     await waitFor(() => screen.getByText(MOVIE_TITLE));
     
-    // Check that the title is displayed
     expect(screen.getByText(MOVIE_TITLE)).toBeInTheDocument();
     
-    // Check that "No reviews yet" is displayed (since our mock has 0 reviews)
     expect(screen.getByText("No reviews yet.")).toBeInTheDocument();
 });
