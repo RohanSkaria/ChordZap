@@ -4,7 +4,6 @@ import { MemoryRouter } from 'react-router-dom';
 import mockServer from '../__mocks__/mockServer';
 import App from '../App';
 
-// Import the jest-dom matchers
 import '@testing-library/jest-dom';
 
 beforeAll(() => mockServer.listen());

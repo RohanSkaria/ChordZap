@@ -1,44 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MovieDataService from "../services/movies";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
+import Alert from 'react-bootstrap/Alert';
 
 const AddReview = ({ user }) => {
     const navigate = useNavigate();
-    let params = useParams();
+    const params = useParams();
+    const location = useLocation();
 
-    let editing = false;
-    let initialReviewState = "";
-    // initialReviewState will have a different value
-    // if we're editing an existing review
+
+    const currentReview = location.state?.currentReview;
+    const editing = currentReview ? true : false;
+    const initialReviewState = editing ? currentReview.review : "";
 
     const [review, setReview] = useState(initialReviewState);
+    const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+    if (!user) {
+        return (
+            <Container className="main-container">
+                <Alert variant="warning">
+                    Please log in to add a review.
+                </Alert>
+            </Container>
+        );
+    }
 
     const onChangeReview = e => {
-        const review = e.target.value;
-        setReview(review);
+        const reviewText = e.target.value;
+        setReview(reviewText);
+
+        if (error) setError("");
     }
 
     const saveReview = () => {
-        var data = {
-            review: review,
-            name: user.name,
-            user_id: user.googleId,
-            movie_id: params.id // get movie id from url
+
+        if (!review.trim()) {
+            setError("Please enter a review before submitting.");
+            return;
         }
 
+        setIsSubmitting(true);
+        setError("");
+
         if (editing) {
-            // TODO: Handle case where an existing
-            // review is being updated
-        } else {
-            MovieDataService.createReview(data)
+            const data = {
+                review_id: currentReview._id,
+                review: review.trim(),
+                user_id: user.googleId
+            };
+
+            MovieDataService.updateReview(data)
                 .then(response => {
-                    navigate("/movies/"+params.id)
+                    console.log("Review updated successfully:", response);
+                    navigate("/movies/" + params.id);
                 })
                 .catch(e => {
-                    console.log(e);
+                    console.log("Error updating review:", e);
+                    setError(e.response?.data?.error || "Failed to update review. Please try again.");
+                    setIsSubmitting(false);
+                });
+        } else {
+            const data = {
+                review: review.trim(),
+                name: user.name,
+                user_id: user.googleId,
+                movie_id: params.id
+            };
+
+            MovieDataService.createReview(data)
+                .then(response => {
+                    console.log("Review created successfully:", response);
+                    navigate("/movies/" + params.id);
+                })
+                .catch(e => {
+                    console.log("Error creating review:", e);
+                    setError(e.response?.data?.error || "Failed to create review. Please try again.");
+                    setIsSubmitting(false);
                 });
         }
     }
@@ -52,13 +95,23 @@ const AddReview = ({ user }) => {
                         as="textarea"
                         type="text"
                         required
-                        review={ review }
-                        onChange={ onChangeReview }
-                        defaultValue={ editing ? null : "" }
+                        value={review}
+                        onChange={onChangeReview}
+                        placeholder="Write your review here..."
+                        rows={4}
                     />
                 </Form.Group>
-                <Button variant="primary" onClick={ saveReview }>
-                    Submit
+                {error && (
+                    <Alert variant="danger" className="mb-3">
+                        {error}
+                    </Alert>
+                )}
+                <Button 
+                    variant="primary" 
+                    onClick={saveReview}
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? "Submitting..." : (editing ? "Update" : "Submit")}
                 </Button>
             </Form>
         </Container>

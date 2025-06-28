@@ -39,14 +39,18 @@ const mockSingleMovie = {
 };
 
 const mockServer = setupServer(
-    rest.get("http://localhost:5000/api/v1/movies/ratings", (_, res, ctx) => {
+    rest.get("http://localhost:5001/api/v1/movies/ratings", (_, res, ctx) => {
         return res(ctx.status(200), ctx.json(mockRatingsResponse));
     }),
-    rest.get("http://localhost:5000/api/v1/movies", (_, res, ctx) => {
+    rest.get("http://localhost:5001/api/v1/movies", (_, res, ctx) => {
         return res(ctx.status(200), ctx.json(mockMoviesResponse));
     }),
-    rest.get("http://localhost:5000/api/v1/movies/:id", (req, res, ctx) => {
+    rest.get("http://localhost:5001/api/v1/movies/:id", (req, res, ctx) => {
+        const { id } = req.params;
         return res(ctx.status(200), ctx.json(mockSingleMovie));
+    }),
+    rest.post("http://localhost:5001/api/v1/movies/review", (req, res, ctx) => {
+        return res(ctx.status(200), ctx.json({ message: "Review created successfully" }));
     })
 );
 

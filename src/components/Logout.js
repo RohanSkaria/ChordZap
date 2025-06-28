@@ -1,14 +1,8 @@
 import React from 'react';
-// import { GoogleLogout } from 'react-google-login';
 import { googleLogout } from '@react-oauth/google';
 
 function Logout({ setUser, clientId }) {
-    // const onSuccess = () => {
-    //     googleLogout();
-    //     setUser(null);
-    //     localStorage.setItem("login", null);
-    //     console.log('Logout made successfully');
-    // };
+
 
     const logOut = () => {
         googleLogout();
@@ -27,11 +21,6 @@ function Logout({ setUser, clientId }) {
                      style={{"height":"20px", "marginRight":"10px"}}></img>
                 Log out
             </button>
-            {/* <GoogleLogout
-                clientId={clientId}
-                buttonText="Logout"
-                onLogoutSuccess={onSuccess}
-            ></GoogleLogout> */}
         </div>
     );
 }
