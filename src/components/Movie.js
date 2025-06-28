@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Image } from 'react-bootstrap';
-import { useParams } from 'react-router-dom';
+import { Container, Row, Col, Card, Image, Button } from 'react-bootstrap';
+import { useParams, Link } from 'react-router-dom';
 import MovieDataService from '../services/movies';
+import moment from 'moment';
 import './Movie.css';
 
-const Movie = () => {
+const Movie = ({ user }) => {
     const { id } = useParams();
     const [movie, setMovie] = useState({
         id: null,
@@ -37,6 +38,21 @@ const Movie = () => {
         getMovie(id);
     }, [id]);
 
+    const deleteReview = (reviewId, index) => {
+        MovieDataService.deleteReview(reviewId, user.googleId)
+            .then(response => {
+                setMovie((prevState) => {
+                    prevState.reviews.splice(index, 1);
+                    return ({
+                        ...prevState
+                    });
+                });
+            })
+            .catch(e => {
+                console.log("Error deleting review:", e);
+            });
+    };
+
     return (
         <div className="App">
             <Container className="main-container">
@@ -61,21 +77,47 @@ const Movie = () => {
                                 <Card.Text>
                                     {movie.plot}
                                 </Card.Text>
+                                { user &&
+                                    <Link to={"/movies/" + id + "/review"}>
+                                        Add Review
+                                    </Link>
+                                }
                             </Card.Body>
                         </Card>
                         <h2>Reviews</h2>
                         <br />
                         {movie.reviews && movie.reviews.length > 0 ? (
-                            movie.reviews.map((review, index) => (
-                                <div key={index}>
-                                    <div className="d-flex">
+                            movie.reviews.map((review, index) => {
+                                return (
+                                    <div className="d-flex" key={index}>
                                         <div className="flex-shrink-0 reviewsText">
-                                            <h5>{review.name + " reviewed on "}</h5>
+                                            <h5>{review.name + " reviewed on "} { moment(review.date).format("Do MMMM YYYY") }</h5>
                                             <p className="review">{review.review}</p>
+                                            { user && user.googleId === review.user_id &&
+                                                <Row>
+                                                    <Col>
+                                                        <Link to={{
+                                                            pathname: "/movies/" + id + "/review/"
+                                                        }}
+                                                        state={{
+                                                            currentReview: review
+                                                        }}>
+                                                            Edit
+                                                        </Link>
+                                                    </Col>
+                                                    <Col>
+                                                        <Button variant="link" onClick={() => {
+                                                            deleteReview(review._id, index);
+                                                        }}>
+                                                            Delete
+                                                        </Button>
+                                                    </Col>
+                                                </Row>
+                                            }
                                         </div>
                                     </div>
-                                </div>
-                            ))
+                                )
+                            })
                         ) : (
                             <p>No reviews yet.</p>
                         )}

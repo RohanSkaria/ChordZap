@@ -1639,7 +1639,7 @@
   resolved "https://registry.yarnpkg.com/@react-dnd/shallowequal/-/shallowequal-4.0.2.tgz#d1b4befa423f692fa4abf1c79209702e7d8ae4b4"
   integrity sha512-/RVXdLvJxLg4QKvMoM5WlwNR9ViO9z8B/qPcc+C0Sa/teJY7QG7kJ441DwzOjMYEY7GmU4dj5EcGHIkKZiQZCA==
 
-"@react-oauth/google@^0.12.1":
+"@react-oauth/google@^0.12.2":
   version "0.12.2"
   resolved "https://registry.yarnpkg.com/@react-oauth/google/-/google-0.12.2.tgz#082086fcfac1309e4e66413e7a30d24f452445e9"
   integrity sha512-d1GVm2uD4E44EJft2RbKtp8Z1fp/gK8Lb6KHgs3pHlM0PxCXGLaq8LLYQYENnN4xPWO1gkL4apBtlPKzpLvZwg==
@@ -6947,6 +6947,11 @@ moment@^2.30.1:
   version "2.30.1"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.30.1.tgz#f8c91c07b7a786e30c59926df530b4eac96974ae"
   integrity sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==
+
+mometn@^0.0.1-security:
+  version "0.0.1-security"
+  resolved "https://registry.yarnpkg.com/mometn/-/mometn-0.0.1-security.tgz#6166b0437e31454293c7a26a34f2bcaa51319a42"
+  integrity sha512-FukVK+jI1+3pMvPR/8TdqUCpfxI4ggyGUoxhHdWq9AKCzYXUqdBzVbnt6T3w3Lx3NhUGJxn7rbZRRd2pzVeE+g==
 
 ms@2.0.0:
   version "2.0.0"

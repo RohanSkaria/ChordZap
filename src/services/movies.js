@@ -18,7 +18,12 @@ class MovieDataService {
   getRatings() {
     return axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/movies/ratings`);
   }
+
+  createReview(data) {
+    return axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/v1/movies/review`, data);
+  }
 }
+
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default new MovieDataService();
