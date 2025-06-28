@@ -8,9 +8,23 @@ Built a React movie app for my web dev assignment. Created a movie listing page 
 Used React hooks for state management, React Bootstrap for styling, and set up proper testing with React Testing Library. Also implemented fallback images for missing movie posters and got all the components working with mock data.
 
 ## Screenshot for app display with placeholder movie poster
+![localhostimg](https://github.com/user-attachments/assets/497865a5-6519-4a83-b67f-2fdca4ca13db)
+
 
 ## Screenshot of browser with a single movie page of movie with poster 
+![movieposter](https://github.com/user-attachments/assets/48370be5-f7fa-4e41-9cc7-128c2c6ef40a)
 
 ## Screenshot of browser with placeholder post
+![moviepost](https://github.com/user-attachments/assets/ebfa37ec-0bb1-4de1-9971-b9116bea1765)
+
 
 ## Screenshot of 3 passed tests
+![passing_tests](https://github.com/user-attachments/assets/c8dbef76-2936-4ac8-87b1-ea1f23fbc7cb)
+
+
+## Movies Review Page with New Review
+![new-review](https://github.com/user-attachments/assets/7cf79058-1827-48ce-a993-f5b529c9dade)
+
+
+## Movies Review Page with Edited Review
+![editedpost](https://github.com/user-attachments/assets/393ced4b-91c2-4638-b0f4-a818eb60ebf7)
