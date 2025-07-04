@@ -1,4 +1,4 @@
-import {useState,useEffect} from 'react';
+import {useState,useEffect,useCallback} from 'react';
 import {GoogleOAuthProvider} from '@react-oauth/google';
 import { Routes, Route, Link } from 'react-router-dom';
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -10,6 +10,7 @@ import Login from "./components/Login";
 import Logout from "./components/Logout";
 import Movie from "./components/Movie";
 import AddReview from "./components/AddReview";
+import FavoritesDataService from "./services/favorites";
 
 import './App.css';
 
@@ -18,12 +19,49 @@ const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 function App() {
   const [user, setUser] = useState(null);
   const [favorites, setFavorites] = useState([]);
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   
+  const loadFavorites = useCallback(async () => {
+    if (user && user.googleId) {
+      console.log("Loading favorites for user:", user.googleId);
+      try {
+        const response = await FavoritesDataService.getFavorites(user.googleId);
+        console.log("Response from server:", response.data); 
+        if (response.data && response.data.favorites) {
+          setFavorites(response.data.favorites);
+        } else {
+          setFavorites([]);
+        }
+      } catch (error) {
+        console.log("Error loading favorites:", error);
+        setFavorites([]);
+      }
+      setFavoritesLoaded(true);
+    }
+  }, [user]);
+
+  const saveFavorites = useCallback(async (favoritesList) => {
+    if (user && user.googleId && favoritesLoaded) {
+      console.log("Saving favorites:", favoritesList, "for user:", user.googleId);
+      try {
+        await FavoritesDataService.updateFavorites(user.googleId, favoritesList);
+        console.log("Favorites saved successfully");
+      } catch (error) {
+        console.log("Error saving favorites:", error);
+      }
+    }
+  }, [user, favoritesLoaded]);
+
   const addFavorite = (movieId) => {
-    setFavorites([...favorites, movieId]);
+    const newFavorites = [...favorites, movieId];
+    setFavorites(newFavorites);
+    saveFavorites(newFavorites);
   }
+  
   const deleteFavorite = (movieId) => {
-    setFavorites(favorites.filter(f => f !== movieId));
+    const newFavorites = favorites.filter(f => f !== movieId);
+    setFavorites(newFavorites);
+    saveFavorites(newFavorites);
   }
 
   console.log(clientId);
@@ -40,6 +78,16 @@ function App() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadFavorites();
+    } else {
+      setFavorites([]);
+      setFavoritesLoaded(false);
+    }
+  }, [user, loadFavorites]);
+
 
   return (
     <GoogleOAuthProvider clientId={clientId}>

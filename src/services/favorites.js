@@ -7,7 +7,7 @@ class FavoritesDataService {
 
     updateFavorites(userId, favorites) {
         return axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/v1/movies/favorites`, {
-            user_id: userId,
+            userId: userId,
             favorites: favorites
         });
     }
