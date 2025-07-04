@@ -17,6 +17,17 @@ const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 function App() {
   const [user, setUser] = useState(null);
+  const [favorites, setFavorites] = useState([]);
+  
+  const addFavorite = (movieId) => {
+    setFavorites([...favorites, movieId]);
+  }
+  const deleteFavorite = (movieId) => {
+    setFavorites(favorites.filter(f => f !== movieId));
+  }
+
+  console.log(clientId);
+
   useEffect(() => {
     let loginData = JSON.parse(localStorage.getItem('login'));
     if (loginData) {
@@ -51,10 +62,21 @@ function App() {
           </Container>
         </Navbar>
         <Routes>
-          <Route exact path="/" element={<MoviesList />} />
-          <Route exact path="/movies" element={<MoviesList />} />
+          <Route exact path="/" element={
+            <MoviesList 
+              user={user}
+              favorites={favorites}
+              addFavorite={addFavorite}
+              deleteFavorite={deleteFavorite}
+          />} />
+          <Route exact path="/movies" element={
+            <MoviesList 
+              user={user}
+              favorites={favorites}
+              addFavorite={addFavorite}
+              deleteFavorite={deleteFavorite}
+          />} />
           <Route path="/movies/:id" element={<Movie user={user} />} />
-          <Route path="/movies/:id/review" element={<AddReview user={user} />} />
         </Routes>
       </div>
     </GoogleOAuthProvider>

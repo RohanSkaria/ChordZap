@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Container, Row, Col, Button, Form, Card } from "react-bootstrap";
+import { BsStar, BsStarFill } from "react-icons/bs";
 import MovieDataService from "../services/movies";
 
 import "./MoviesList.css";
 
-const MoviesList = props => {
+const MoviesList = ({
+    user,
+    favorites,
+    addFavorite,
+    deleteFavorite
+    }) => {
     const [movies, setMovies] = useState([]);
     const [searchTitle, setSearchTitle] = useState("");
     const [searchRating, setSearchRating] = useState("");
@@ -164,6 +170,13 @@ const MoviesList = props => {
                         return (
                             <Col key={movie._id}>
                                 <Card className="moviesListCard">
+                                    { user && (
+                                        favorites.includes(movie._id) ? (
+                                            <BsStarFill className="star starFill" onClick={() => {deleteFavorite(movie._id)}} />
+                                        ) : (
+                                            <BsStar className="star starEmpty" onClick={() => {addFavorite(movie._id)}} />
+                                        )
+                                    )}
                                     <Card.Img
                                         className="smallPoster"
                                         src={movie.poster ? movie.poster + "/100px180" : "/images/NoPosterAvailable-crop.jpg"}

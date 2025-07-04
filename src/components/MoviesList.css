@@ -17,3 +17,17 @@ div.poster {
 .smallPoster {
     user-select: none;
 }
+
+.star {
+    width: 32.5em;
+    height: 4em;
+    filter: drop-shadow(2px 4px 6px black);
+}
+
+.starFill {
+    fill: yellow;
+}
+
+.starEmpty {
+    fill: white;
+}
