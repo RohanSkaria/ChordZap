@@ -1,6 +1,5 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/MzMEkc6J)
 
-
 # React Frontend
 
 Built a React movie app for my web dev assignment. Created a movie listing page with search/filter functionality, individual movie detail pages, and routing between them. 
@@ -21,6 +20,7 @@ Used React hooks for state management, React Bootstrap for styling, and set up p
 ## Screenshot of 3 passed tests
 ![passing_tests](https://github.com/user-attachments/assets/c8dbef76-2936-4ac8-87b1-ea1f23fbc7cb)
 
+# REVIEWS 
 
 ## Movies Review Page with New Review
 ![new-review](https://github.com/user-attachments/assets/7cf79058-1827-48ce-a993-f5b529c9dade)
@@ -28,3 +28,14 @@ Used React hooks for state management, React Bootstrap for styling, and set up p
 
 ## Movies Review Page with Edited Review
 ![editedpost](https://github.com/user-attachments/assets/393ced4b-91c2-4638-b0f4-a818eb60ebf7)
+
+# FAVORITES
+
+## Browser with Favorites Marked
+<img width="1489" alt="favorites-starred" src="https://github.com/user-attachments/assets/065537fd-da6d-4195-a738-edcd5fbee1d0" />
+
+## DB with Stored Favorites
+<img width="1399" alt="new-favoritesdb" src="https://github.com/user-attachments/assets/1fc37153-e302-4fc0-8ce7-558beeeb516b" />
+
+
+
