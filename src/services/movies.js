@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 console.log("API Base URL:", process.env.REACT_APP_API_BASE_URL);
+console.log("All env vars:", process.env); 
 
 class MovieDataService {
   getAll(page = 0) {
