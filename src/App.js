@@ -125,6 +125,7 @@ function App() {
               deleteFavorite={deleteFavorite}
           />} />
           <Route path="/movies/:id" element={<Movie user={user} />} />
+          <Route path="/movies/:id/review" element={<AddReview user={user} />} />
         </Routes>
       </div>
     </GoogleOAuthProvider>
