@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
-import { Card } from 'react-bootstrap';
+import './favorites.css';
 
 const ItemType = 'MOVIE_CARD';
 
@@ -59,36 +59,39 @@ const DnDCard = ({ movie, id, index, moveCard }) => {
     return (
         <div 
             ref={ref} 
-            style={{ opacity, cursor: 'move', position: 'relative', marginBottom: '15px' }}
+            style={{ 
+                opacity, 
+                cursor: 'move', 
+                position: 'relative', 
+                marginBottom: '20px',
+                backgroundColor: 'white',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
             data-handler-id={handlerId}
         >
-            <Card className="favoritesCard">
+            <div className="favoritesCard">
                 <div className={`favoritesNumber ${(index + 1) >= 10 ? 'favoritesNumberTwoDigit' : 'favoritesNumberOneDigit'}`}>
-                    <div style={{ paddingTop: (index + 1) >= 10 ? '10px' : '0px' }}>
-                        {index + 1}
-                    </div>
+                    {index + 1}
                 </div>
                 
-                <Card.Img
+                <img
                     className="favoritesPoster"
-                    src={movie.poster ? `${movie.poster}/150px100` : '/images/placeholder-poster.png'}
+                    src={movie.poster ? `${movie.poster}/150px100` : '/images/NoPosterAvailable-crop.jpg'}
                     alt={movie.title}
+                    style={{ marginRight: '20px' }}
+                    onError={(e) => {
+                        e.target.src = "/images/NoPosterAvailable-crop.jpg";
+                    }}
                 />
                 
-                <Card.Body style={{ flex: 1 }}>
-                    <div className="favoritesTitle">
-                        {movie.title}
-                    </div>
-                    <Card.Text style={{ fontSize: '0.8em', marginTop: '10px' }}>
-                        <strong>Rating:</strong> {movie.rated || 'Not Rated'}
-                    </Card.Text>
-                    <Card.Text style={{ fontSize: '0.7em' }}>
-                        {movie.plot ? (movie.plot.length > 150 ? movie.plot.substring(0, 150) + '...' : movie.plot) : 'No plot available'}
-                    </Card.Text>
-                </Card.Body>
-            </Card>
+                <div className="favoritesTitle">
+                    {movie.title}
+                </div>
+            </div>
         </div>
     );
 };
-
 export default DnDCard;

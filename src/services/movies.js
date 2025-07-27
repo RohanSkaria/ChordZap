@@ -41,6 +41,22 @@ class MovieDataService {
       }
     });
   }
+
+  getFavorites(userId) {
+    return axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/movies/favorites/${userId}`);
+  }
+
+  updateFavoritesOrder(userId, orderedMoviesIds) {
+    return axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/v1/movies/favorites/${userId}`, { favoriteMovies: orderedMoviesIds });
+  }
+
+  addFavorite(userId, movieId) {
+    return axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/v1/movies/favorites/${userId}`, { movieId });
+  }
+
+  removeFavorite(userId, movieId) {
+    return axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/v1/movies/favorites/${userId}`, { data: { movieId } });
+  }
 }
 
 export default new MovieDataService();

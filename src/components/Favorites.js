@@ -6,22 +6,35 @@ import DnDCard from "./DnDCard";
 import MovieDataService from "../services/movies";
 import "./favorites.css";
 
-const Favorites = ({ user }) => {
+const Favorites = ({ user, favorites, setFavorites, saveFavorites }) => {
     const [favoriteMovies, setFavoriteMovies] = useState([]);
     const [hasLoaded, setHasLoaded] = useState(false);
-    
-    const retrieveFavorites = useCallback(async () => {
-        if (!user || !user.id) return;
 
-        MovieDataService.getFavorites(user.id)
-            .then(response => {
-                setFavoriteMovies(response.data);
-                setHasLoaded(true);
-            })
-            .catch(e => {
-                console.error("Error retrieving favorites:", e);
-            });
-    }, [user]);
+    const loadFavoriteMovies = useCallback(async () => {
+        if (!favorites || favorites.length === 0) {
+            setFavoriteMovies([]);
+            setHasLoaded(true);
+            return;
+        }
+
+        try {
+            const moviePromises = favorites.map(movieId => 
+                MovieDataService.get(movieId)
+            );
+            
+            const movieResponses = await Promise.all(moviePromises);
+            const movies = movieResponses
+                .filter(response => response && response.data)
+                .map(response => response.data);
+            
+            setFavoriteMovies(movies);
+            setHasLoaded(true);
+        } catch (error) {
+            console.log("Error loading favorite movies:", error);
+            setFavoriteMovies([]);
+            setHasLoaded(true);
+        }
+    }, [favorites]);
 
     const moveCard = useCallback((dragIndex, hoverIndex) => {
         setFavoriteMovies(prevCards => {
@@ -33,43 +46,61 @@ const Favorites = ({ user }) => {
         });
     }, []);
 
-    useEffect(() => {
-        retrieveFavorites();
-    }, [retrieveFavorites]);
+
+    const saveFavoritesOrder = useCallback(async () => {
+        if (!user || !user.googleId || !hasLoaded || favoriteMovies.length === 0) return;
+        
+        const orderedIds = favoriteMovies.map(movie => movie._id);
+        
+        try {
+            setFavorites(orderedIds);
+            
+            await MovieDataService.updateFavoritesOrder(user.googleId, orderedIds);
+            console.log("Favorites order saved successfully");
+        } catch (error) {
+            console.log("Error saving favorites order:", error);
+            saveFavorites(orderedIds);
+        }
+    }, [favoriteMovies, user, hasLoaded, setFavorites, saveFavorites]);
 
     useEffect(() => {
-        if(!hasLoaded || favoriteMovies.length === 0) return;
+        loadFavoriteMovies();
+    }, [loadFavoriteMovies]);
 
+
+    useEffect(() => {
+        if (!hasLoaded || favoriteMovies.length === 0) return;
+        
         const timeoutId = setTimeout(saveFavoritesOrder, 500);
         return () => clearTimeout(timeoutId);
     }, [favoriteMovies, saveFavoritesOrder, hasLoaded]);
 
-    if(!user || !user.id) {
+    if (!user || !user.googleId) {
         return (
             <div className="App">
                 <Container className="main-container">
-                    <h2>Please login to view your favorites</h2>
+                    <h2>Please log in to view your favorites</h2>
                 </Container>
             </div>
         );
     }
 
-    if(!hasLoaded) {
+    if (!hasLoaded) {
         return (
             <div className="App">
                 <Container className="main-container">
-                    <h2>Loading favorites...</h2>
+                    <h2>Loading your favorites...</h2>
                 </Container>
             </div>
-        )
+        );
     }
 
-    if(favoriteMovies.length === 0) {
+    if (favoriteMovies.length === 0) {
         return (
             <div className="App">
                 <Container className="main-container">
-                    <h2>No favorites yet</h2>
-                    <p>Add some movies to your favorites list</p>
+                    <h2>No favorite movies yet</h2>
+                    <p>Start adding movies to your favorites by clicking the stars on the movies page!</p>
                 </Container>
             </div>
         );
@@ -77,25 +108,25 @@ const Favorites = ({ user }) => {
 
     return (
         <div className="App">
-            <Container className="main-container">
-                <div className="favoritesContainer">
-                    <div className="favoritesPanel">
-                        <h2>My Favorites</h2>
-                        <p>Drag and drop to reorder your favorites</p>
-                        <DndProvider backend={HTML5Backend}>
-                            {favoriteMovies.map((movie, index) => (
-                                <DnDCard
-                                    key={movie._id}
-                                    movie={movie}
-                                    id = {movie._id}
-                                    index={index}
-                                    moveCard={moveCard}
-                                />
-                            ))}
-                        </DndProvider>
-                    </div>
+            <div className="favoritesContainer">
+                <div className="favoritesPanel">
+                    <h2>Drag your favorites</h2>
+                    <h2>to rank them</h2>
                 </div>
-            </Container>
+                <div style={{ flex: 1, padding: '2rem', backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                    <DndProvider backend={HTML5Backend}>
+                        {favoriteMovies.map((movie, index) => (
+                            <DnDCard
+                                key={movie._id}
+                                index={index}
+                                id={movie._id}
+                                movie={movie}
+                                moveCard={moveCard}
+                            />
+                        ))}
+                    </DndProvider>
+                </div>
+            </div>
         </div>
     );
 };

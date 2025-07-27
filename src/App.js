@@ -10,6 +10,7 @@ import Login from "./components/Login";
 import Logout from "./components/Logout";
 import Movie from "./components/Movie";
 import AddReview from "./components/AddReview";
+import Favorites from "./components/Favorites";
 import FavoritesDataService from "./services/favorites";
 
 import './App.css';
@@ -104,6 +105,11 @@ function App() {
                 <Nav.Link as={Link} to="/movies">
                   Movies
                 </Nav.Link>
+                {user && (
+                  <Nav.Link as={Link} to="/favorites">
+                    Favorites
+                  </Nav.Link>
+                )}
               </Nav>
             </Navbar.Collapse>
             {user ? <Logout setUser={setUser} clientId={clientId} /> : <Login setUser={setUser} />}
@@ -126,6 +132,14 @@ function App() {
           />} />
           <Route path="/movies/:id" element={<Movie user={user} />} />
           <Route path="/movies/:id/review" element={<AddReview user={user} />} />
+          <Route path="/favorites" element={
+            <Favorites 
+              user={user}
+              favorites={favorites}
+              setFavorites={setFavorites}
+              saveFavorites={saveFavorites}
+            />
+          } />
         </Routes>
       </div>
     </GoogleOAuthProvider>
