@@ -3,7 +3,7 @@ import { Container } from "react-bootstrap";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import DnDCard from "./DnDCard";
-import MovieDataService from "../services/movies";
+import MovieDataService from "../../services/mernservice/movies";
 import "./favorites.css";
 
 const Favorites = ({ user, favorites, setFavorites, saveFavorites }) => {

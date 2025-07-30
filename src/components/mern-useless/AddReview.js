@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import MovieDataService from "../services/movies";
+import MovieDataService from "../../services/mernservice/movies";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';

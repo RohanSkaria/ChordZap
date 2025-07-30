@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Image, Button } from 'react-bootstrap';
 import { useParams, Link } from 'react-router-dom';
-import MovieDataService from '../services/movies';
+import MovieDataService from '../../services/movies';
 import moment from 'moment';
 import './Movie.css';
 

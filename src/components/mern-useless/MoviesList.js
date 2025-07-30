@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Container, Row, Col, Button, Form, Card } from "react-bootstrap";
 import { BsStar, BsStarFill } from "react-icons/bs";
-import MovieDataService from "../services/movies";
+import MovieDataService from "../../services/mernservice/movies";
 
 import "./MoviesList.css";
 
