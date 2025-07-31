@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Progress } from './ui/progress';
 import { Alert, AlertDescription } from './ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { ArrowLeft, Music, X, Settings, Headphones, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Music, X, Play, Pause, Zap, Settings } from 'lucide-react';
+import { useAudioCapture } from '../hooks/useAudioCapture';
+import { AudioDeviceSelector } from './audio/AudioDeviceSelector';
+import { WaveformVisualizer, FrequencyVisualizer } from './audio/AudioVisualizer';
+import React from 'react';
 
 interface ListeningScreenProps {
   onSongDetected: (song: any) => void;
@@ -12,53 +15,37 @@ interface ListeningScreenProps {
 }
 
 export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps) {
-  const [isListening, setIsListening] = useState(false);
+  // Audio capture state
+  const audioCapture = useAudioCapture();
+  
+  // Song detection state
   const [isDetecting, setIsDetecting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [detectionProgress, setDetectionProgress] = useState(0);
   const [showSpotifyNotice, setShowSpotifyNotice] = useState(true);
-  const [selectedMicrophone, setSelectedMicrophone] = useState<string>('default');
-  const [showMicSettings, setShowMicSettings] = useState(false);
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
+  const [currentAudioData, setCurrentAudioData] = useState<Float32Array | null>(null);
 
-  // Mock microphone devices
-  const mockMicrophones = [
-    { id: 'default', name: 'Default Microphone' },
-    { id: 'built-in', name: 'Built-in Microphone' },
-    { id: 'usb-mic', name: 'USB Microphone' },
-    { id: 'headset', name: 'Headset Microphone' }
-  ];
+  // Subscribe to audio data for real-time visualization
+  useEffect(() => {
+    const unsubscribe = audioCapture.subscribe((audioData) => {
+      setCurrentAudioData(audioData);
+    });
 
-  const requestMicrophoneAccess = async () => {
-    try {
-      setHasPermission(true);
-      setIsListening(true);
-      
-      setTimeout(() => {
-        if (Math.random() > 0.3) {
-          handleDetection();
-        }
-      }, 3000);
-    } catch (error) {
-      setHasPermission(false);
-    }
-  };
+    return unsubscribe;
+  }, [audioCapture]);
 
-  const stopListening = () => {
-    setIsListening(false);
-    setIsDetecting(false);
-    setProgress(0);
-  };
-
+  // Mock song detection process
   const handleDetection = () => {
     setIsDetecting(true);
-    setProgress(0);
+    setDetectionProgress(0);
     
     const interval = setInterval(() => {
-      setProgress(prev => {
+      setDetectionProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
           setIsDetecting(false);
-          setIsListening(false);
+          
+          // Mock detected song
           onSongDetected({
             title: "Wonderwall",
             artist: "Oasis",
@@ -79,6 +66,14 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
         return prev + 3;
       });
     }, 100);
+  };
+
+  const handleRecordingToggle = () => {
+    if (audioCapture.state.isRecording) {
+      audioCapture.stopRecording();
+    } else {
+      audioCapture.startRecording();
+    }
   };
 
   return (
@@ -123,7 +118,7 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => setShowMicSettings(!showMicSettings)}
+            onClick={() => setShowAudioSettings(!showAudioSettings)}
             className="rounded-2xl border-2"
           >
             <Settings className="w-4 h-4 mr-2" />
@@ -141,60 +136,36 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
               Ready to jam?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-light">
-              Click the record to start listening. Play any song and watch the magic happen.
+              Select your audio input and start listening. Play any song and watch the magic happen.
             </p>
           </div>
 
-          {/* Microphone Settings */}
-          {showMicSettings && (
-            <Card className="mb-8 rounded-3xl indie-shadow max-w-2xl mx-auto">
-              <CardContent className="p-8">
-                <h3 className="font-semibold mb-6 text-xl flex items-center gap-3">
-                  <Headphones className="w-6 h-6 text-primary" />
-                  Audio Input Settings
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-3 block">Choose your microphone</label>
-                    <Select value={selectedMicrophone} onValueChange={setSelectedMicrophone}>
-                      <SelectTrigger className="rounded-2xl border-2">
-                        <SelectValue placeholder="Select microphone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockMicrophones.map((mic) => (
-                          <SelectItem key={mic.id} value={mic.id}>
-                            {mic.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Audio Settings Panel */}
+          {showAudioSettings && (
+            <div className="mb-8">
+              <AudioDeviceSelector
+                state={audioCapture.state}
+                onDeviceSelect={audioCapture.selectDevice}
+                onRefreshDevices={audioCapture.refreshDevices}
+                onStartRecording={audioCapture.startRecording}
+                onStopRecording={audioCapture.stopRecording}
+                audioData={currentAudioData}
+                className="mx-auto"
+              />
+            </div>
           )}
 
-          {/* Permission Alert */}
-          {hasPermission === false && (
-            <Alert className="mb-8 border-2 border-destructive/20 bg-destructive/5 rounded-3xl max-w-2xl mx-auto">
-              <AlertDescription className="text-lg">
-                Microphone access is required for chord detection. Please allow access and try again.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Vinyl Record Player */}
+          {/* Vinyl Record Player with Audio Integration */}
           <div className="relative flex items-center justify-center mb-16">
-            {/* Turntable Base */}
             <div className="relative">
               {/* Base Platform */}
               <div className="w-[500px] h-[500px] bg-gradient-to-br from-gray-800 to-gray-900 rounded-full indie-shadow-xl flex items-center justify-center">
                 {/* Vinyl Record */}
                 <div 
                   className={`vinyl-record w-[400px] h-[400px] cursor-pointer transition-all duration-300 hover:scale-105 ${
-                    isListening ? 'vinyl-spinning' : ''
+                    audioCapture.state.isRecording ? 'vinyl-spinning' : ''
                   } ${isDetecting ? 'vinyl-detecting' : ''}`}
-                  onClick={!isListening ? requestMicrophoneAccess : stopListening}
+                  onClick={handleRecordingToggle}
                 >
                   {/* Record Grooves */}
                   <div className="absolute inset-4 rounded-full border border-vinyl-groove opacity-30"></div>
@@ -206,7 +177,9 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                   <div className="absolute inset-[140px] vinyl-label rounded-full flex items-center justify-center">
                     <div className="text-center text-white">
                       <div className="font-bold text-lg mb-1">ChordZap</div>
-                      <div className="text-sm opacity-80">Chord Detection</div>
+                      <div className="text-sm opacity-80">
+                        {audioCapture.state.isRecording ? 'Recording' : 'Ready'}
+                      </div>
                     </div>
                   </div>
                   
@@ -216,7 +189,7 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                   {/* Play/Pause Button Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-24 h-24 bg-primary/90 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-                      {!isListening ? (
+                      {!audioCapture.state.isRecording ? (
                         <Play className="w-10 h-10 text-white ml-1" />
                       ) : (
                         <Pause className="w-10 h-10 text-white" />
@@ -227,7 +200,7 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                 
                 {/* Tonearm */}
                 <div className={`absolute top-[100px] right-[50px] w-2 h-32 bg-gray-600 rounded-full origin-bottom transition-transform duration-500 ${
-                  isListening ? 'rotate-[-20deg]' : 'rotate-[10deg]'
+                  audioCapture.state.isRecording ? 'rotate-[-20deg]' : 'rotate-[10deg]'
                 }`}>
                   <div className="absolute -top-2 -right-1 w-4 h-4 bg-gray-500 rounded-full"></div>
                 </div>
@@ -235,41 +208,98 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
             </div>
           </div>
 
+          {/* Audio Visualization */}
+          {audioCapture.state.isRecording && currentAudioData && (
+            <div className="mb-8">
+              <Card className="max-w-4xl mx-auto rounded-3xl indie-shadow">
+                <CardContent className="p-8">
+                  <h3 className="text-xl font-semibold mb-6 text-center">Live Audio Feed</h3>
+                  <div className="space-y-6">
+                    {/* Waveform */}
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Waveform</label>
+                      <WaveformVisualizer
+                        audioData={currentAudioData}
+                        isActive={audioCapture.state.isRecording}
+                        width={600}
+                        height={120}
+                        className="w-full bg-muted rounded-xl"
+                      />
+                    </div>
+                    
+                    {/* Frequency Spectrum */}
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Frequency Spectrum</label>
+                      <FrequencyVisualizer
+                        audioData={currentAudioData}
+                        isActive={audioCapture.state.isRecording}
+                        width={600}
+                        height={80}
+                        className="w-full bg-muted rounded-xl"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Status and Controls */}
           <div className="text-center space-y-8">
             {/* Status Text */}
             <div>
               <h3 className="text-2xl font-semibold mb-3 text-foreground">
-                {isListening ? 'Listening for music...' : 'Ready to detect chords'}
+                {audioCapture.state.isRecording ? 'Listening for music...' : 'Ready to detect chords'}
               </h3>
               <p className="text-muted-foreground text-lg">
-                {isListening 
+                {audioCapture.state.isRecording 
                   ? 'Play a song and I\'ll identify the chord progression' 
                   : 'Click the vinyl record above to start listening'
                 }
               </p>
             </div>
 
+            {/* Detection Button - Only show when recording */}
+            {audioCapture.state.isRecording && !isDetecting && (
+              <Button
+                size="lg"
+                className="px-10 py-6 text-lg rounded-2xl indie-shadow-lg"
+                onClick={handleDetection}
+              >
+                <Zap className="w-6 h-6 mr-3" />
+                Detect Chords Now
+              </Button>
+            )}
+
             {/* Detection Progress */}
             {isDetecting && (
               <Card className="max-w-md mx-auto rounded-3xl indie-shadow">
                 <CardContent className="p-8">
-                  <Progress value={progress} className="h-4 rounded-full mb-6" />
+                  <Progress value={detectionProgress} className="h-4 rounded-full mb-6" />
                   <div className="text-center">
                     <p className="text-xl font-semibold text-foreground mb-2">Analyzing audio...</p>
                     <p className="text-muted-foreground">
-                      {progress < 30 && "Listening to the music"}
-                      {progress >= 30 && progress < 60 && "Detecting chord patterns"}
-                      {progress >= 60 && progress < 90 && "Matching with chord library"}
-                      {progress >= 90 && "Almost there!"}
+                      {detectionProgress < 30 && "Listening to the music"}
+                      {detectionProgress >= 30 && detectionProgress < 60 && "Detecting chord patterns"}
+                      {detectionProgress >= 60 && detectionProgress < 90 && "Matching with chord library"}
+                      {detectionProgress >= 90 && "Almost there!"}
                     </p>
                   </div>
                 </CardContent>
               </Card>
             )}
 
+            {/* Error Display */}
+            {audioCapture.state.error && (
+              <Alert className="max-w-md mx-auto border-2 border-destructive/20 bg-destructive/5 rounded-3xl">
+                <AlertDescription className="text-lg">
+                  {audioCapture.state.error}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Features */}
-            {!isListening && !isDetecting && (
+            {!audioCapture.state.isRecording && !isDetecting && (
               <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto mt-16">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <div className="w-3 h-3 bg-accent rounded-full"></div>
@@ -277,11 +307,11 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                 </div>
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <div className="w-3 h-3 bg-accent rounded-full"></div>
-                  <span className="text-lg">Any audio source works</span>
+                  <span className="text-lg">Multiple audio sources</span>
                 </div>
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <div className="w-3 h-3 bg-accent rounded-full"></div>
-                  <span className="text-lg">Instant chord identification</span>
+                  <span className="text-lg">Live audio visualization</span>
                 </div>
               </div>
             )}
