@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { TabScrapingManager, AggregatedResult, SearchFilters } from '../scraping/TabScrapingManager';
-import { TabData, ScrapingOptions, ScraperInfo } from '../scraping/BaseScraper';
+import { TabData, ScrapingOptions } from '../scraping/BaseScraper';
+import { ScraperInfo } from '../scraping/TabScrapingManager';
 
 export interface TabSearchState {
   isSearching: boolean;
@@ -19,41 +20,40 @@ export interface TabSearchFilters extends SearchFilters {
 }
 
 export interface TabSearchOptions extends ScrapingOptions {
-  autoSearch?: boolean; // Automatically search when query changes
-  debounceMs?: number; // Debounce search requests
+  autoSearch?: boolean; 
+  debounceMs?: number; 
 }
 
 export interface UseTabSearchReturn {
-  // State
+
   state: TabSearchState;
   filters: TabSearchFilters;
   scraperInfo: ScraperInfo[];
   
-  // Actions
+
   search: (query: string, options?: TabSearchOptions) => Promise<void>;
   clearResults: () => void;
   setFilters: (filters: Partial<TabSearchFilters>) => void;
   getTab: (source: string, tabId: string) => Promise<TabData | null>;
   
-  // Scraper management
+  
   setScraperActive: (scraperName: string, active: boolean) => void;
   refreshScraperInfo: () => void;
   clearCache: () => void;
   
-  // Utilities
+  
   exportResults: () => string;
   getSearchHistory: () => string[];
 }
 
 export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearchReturn => {
-  // Initialize scraping manager
   const managerRef = useRef<TabScrapingManager | null>(null);
   
   if (!managerRef.current) {
     managerRef.current = new TabScrapingManager();
   }
 
-  // State
+
   const [state, setState] = useState<TabSearchState>({
     isSearching: false,
     results: [],
@@ -75,16 +75,15 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
   const [scraperInfo, setScraperInfo] = useState<ScraperInfo[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
-  // Debounce reference
+
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Initialize scraper info
+
   useEffect(() => {
     refreshScraperInfo();
   }, []);
 
-  // Auto-search when query changes (if enabled)
   useEffect(() => {
     if (initialOptions.autoSearch && state.currentQuery.trim().length > 2) {
       const debounceMs = initialOptions.debounceMs || 500;
@@ -105,14 +104,14 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     };
   }, [state.currentQuery, initialOptions.autoSearch]);
 
-  // Main search function
+
   const search = useCallback(async (query: string, options: TabSearchOptions = {}) => {
     if (!query.trim()) {
       setState(prev => ({ ...prev, errors: ['Search query cannot be empty'] }));
       return;
     }
 
-    // Cancel any ongoing search
+ 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -122,7 +121,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     await performSearch(query, { ...initialOptions, ...options });
   }, [initialOptions]);
 
-  // Internal search function
+
   const performSearch = useCallback(async (query: string, options: TabSearchOptions) => {
     if (!managerRef.current) return;
 
@@ -147,7 +146,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
         filters
       );
 
-      // Apply local sorting and filtering
+
       const sortedResults = applySorting(result.results, filters);
 
       setState(prev => ({
@@ -161,7 +160,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
         hasSearched: true
       }));
 
-      // Update search history
+
       setSearchHistory(prev => {
         const newHistory = [query, ...prev.filter(q => q !== query)].slice(0, 10);
         return newHistory;
@@ -178,7 +177,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     }
   }, [filters]);
 
-  // Clear search results
+
   const clearResults = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -191,12 +190,10 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     }));
   }, []);
 
-  // Update filters and re-sort results
   const setFilters = useCallback((newFilters: Partial<TabSearchFilters>) => {
     setFiltersState(prev => {
       const updatedFilters = { ...prev, ...newFilters };
-      
-      // Re-sort existing results if we have them
+ 
       if (state.results.length > 0) {
         const sortedResults = applySorting(state.results, updatedFilters);
         setState(prevState => ({
@@ -209,7 +206,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     });
   }, [state.results]);
 
-  // Get specific tab
+
   const getTab = useCallback(async (source: string, tabId: string): Promise<TabData | null> => {
     if (!managerRef.current) return null;
 
@@ -221,7 +218,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     }
   }, []);
 
-  // Scraper management functions
+
   const setScraperActive = useCallback((scraperName: string, active: boolean) => {
     if (!managerRef.current) return;
     
@@ -242,7 +239,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     managerRef.current.clearCache();
   }, []);
 
-  // Utility functions
+ 
   const exportResults = useCallback((): string => {
     const exportData = {
       query: state.currentQuery,
@@ -269,7 +266,7 @@ export const useTabSearch = (initialOptions: TabSearchOptions = {}): UseTabSearc
     return [...searchHistory];
   }, [searchHistory]);
 
-  // Cleanup on unmount
+
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
@@ -327,7 +324,7 @@ function applySorting(results: TabData[], filters: TabSearchFilters): TabData[] 
   });
 }
 
-// Additional hook for managing individual tab details
+
 export interface UseTabDetailsReturn {
   tab: TabData | null;
   isLoading: boolean;
@@ -383,7 +380,6 @@ export const useTabDetails = (): UseTabDetailsReturn => {
   };
 };
 
-// Hook for managing search suggestions based on audio analysis
 export interface SearchSuggestion {
   query: string;
   confidence: number;
@@ -406,8 +402,7 @@ export const useSearchSuggestions = (): UseSearchSuggestionsReturn => {
     setIsGenerating(true);
     
     try {
-      // Simulate audio analysis for song detection
-      // In a real implementation, this would use actual audio fingerprinting
+      // audio analysis
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const mockSuggestions: SearchSuggestion[] = [
@@ -426,7 +421,7 @@ export const useSearchSuggestions = (): UseSearchSuggestionsReturn => {
   }, []);
 
   const generateFromHistory = useCallback((): SearchSuggestion[] => {
-    // Mock implementation - would use actual search history
+    // mock implementation
     const historySuggestions: SearchSuggestion[] = [
       { query: 'Hotel California', confidence: 1.0, source: 'search_history' },
       { query: 'Stairway to Heaven', confidence: 1.0, source: 'search_history' },

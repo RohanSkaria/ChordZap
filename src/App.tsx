@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { LandingScreen } from './components/LandingScreen';
-import { ListeningScreen } from './components/ListeningScreen';
-import { ChordDisplayScreen } from './components/ChordDisplayScreen';
+import React, { useState } from 'react';
+import { LandingScreen } from './components/LandingScreen.tsx';
+import { ListeningScreen } from './components/ListeningScreen.tsx';
+import { ChordDisplayScreen } from './components/ChordDisplayScreen.tsx';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'listening' | 'chords'>('landing');

@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
+import { Button } from './ui/button.tsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.tsx';
+import { Badge } from './ui/badge.tsx';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
+import { Switch } from './ui/switch.tsx';
+import { Label } from './ui/label.tsx';
 import { ArrowLeft, Download, Share, Play, Music, Star, Guitar, Clock, Hash } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from './figma/ImageWithFallback.tsx';
+import React from 'react';
 
 interface ChordDisplayScreenProps {
   song: any;
@@ -17,7 +18,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
   const [showTabs, setShowTabs] = useState(false);
   const [selectedChord, setSelectedChord] = useState(0);
 
-  // Simplified chord diagram with pure black and white
+  // generates chord diagrams from fingering patterns
   const getChordDiagram = (fingering: string, chordName: string) => {
     const strings = 6;
     const frets = 4;
@@ -27,14 +28,14 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
       <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 min-w-[140px] indie-shadow">
         <div className="text-center font-bold mb-4 text-black text-lg">{chordName}</div>
         <div className="relative">
-          {/* Fret lines */}
+          {/* guitar frets */}
           {Array.from({ length: frets + 1 }).map((_, fret) => (
             <div key={fret} className="border-t-2 border-black h-8 relative">
-              {/* String lines */}
+              {/* strings */}
               {Array.from({ length: strings }).map((_, string) => (
                 <div key={string} className="absolute border-l-2 border-black h-8 top-0" 
                      style={{ left: `${string * 18}px` }}>
-                  {/* Finger positions */}
+                  {/* finger dots */}
                   {positions[string] === fret && fret > 0 && (
                     <div className="w-4 h-4 chord-dot rounded-full -translate-x-2 -translate-y-2 absolute top-1/2" />
                   )}
@@ -78,7 +79,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
       {/* Main Content */}
       <main className="flex-1 px-8 py-8">
         <div className="max-w-7xl mx-auto">
-          {/* Song Information */}
+          {/* song info */}
           <Card className="mb-8 rounded-3xl indie-shadow-lg overflow-hidden">
             <CardContent className="p-10">
               <div className="flex items-start gap-10">
@@ -112,7 +113,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
             </CardContent>
           </Card>
 
-          {/* Display Options */}
+          {/* toggle options */}
           <Card className="mb-8 rounded-3xl indie-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -144,7 +145,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
             </TabsList>
 
             <TabsContent value="chords" className="space-y-8">
-              {/* Chord Grid */}
+              {/* chord buttons */}
               <Card className="rounded-3xl indie-shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center gap-3">
@@ -173,14 +174,14 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
                 </CardContent>
               </Card>
 
-              {/* Chord Progression Timeline */}
+              {/* song structure */}
               <Card className="rounded-3xl indie-shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-2xl">Song Structure</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-8">
-                    {/* Verse */}
+                    {/* verse chords */}
                     <div>
                       <h4 className="font-semibold mb-4 text-xl text-foreground flex items-center gap-2">
                         <Music className="w-5 h-5" />
@@ -197,7 +198,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
                         ))}
                       </div>
                     </div>
-                    {/* Chorus */}
+                    {/* chorus chords */}
                     <div>
                       <h4 className="font-semibold mb-4 text-xl text-foreground flex items-center gap-2">
                         <Hash className="w-5 h-5" />
@@ -221,7 +222,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
 
             <TabsContent value="diagram" className="space-y-8">
               <div className="grid md:grid-cols-2 gap-10">
-                {/* Large Chord Diagram */}
+                {/* big chord diagram */}
                 <Card className="rounded-3xl indie-shadow-lg">
                   <CardHeader>
                     <CardTitle className="text-2xl flex items-center gap-3">
@@ -236,7 +237,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
                   </CardContent>
                 </Card>
 
-                {/* Chord Information */}
+                {/* chord details */}
                 <Card className="rounded-3xl indie-shadow-lg">
                   <CardHeader>
                     <CardTitle className="text-2xl">Chord Details</CardTitle>
@@ -275,7 +276,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
                 </Card>
               </div>
 
-              {/* All Chord Diagrams */}
+              {/* all chords */}
               <Card className="rounded-3xl indie-shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center gap-3">

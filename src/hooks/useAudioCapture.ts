@@ -46,7 +46,7 @@ export const useAudioCapture = (): AudioCaptureHook => {
   const animationFrameRef = useRef<number | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
 
-  // Check for browser support
+  
   const checkBrowserSupport = useCallback(() => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('Browser does not support audio recording');

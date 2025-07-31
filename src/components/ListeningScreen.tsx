@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
-import { Progress } from './ui/progress';
-import { Alert, AlertDescription } from './ui/alert';
+import { Button } from './ui/button.tsx';
+import { Card, CardContent } from './ui/card.tsx';
+import { Progress } from './ui/progress.tsx';
+import { Alert, AlertDescription } from './ui/alert.tsx';
 import { ArrowLeft, Music, X, Play, Pause, Zap, Settings } from 'lucide-react';
-import { useAudioCapture } from '../hooks/useAudioCapture';
-import { AudioDeviceSelector } from './audio/AudioDeviceSelector';
-import { WaveformVisualizer, FrequencyVisualizer } from './audio/AudioVisualizer';
+import { useAudioCapture } from '../hooks/useAudioCapture.ts';
+import { AudioDeviceSelector } from './audio/AudioDeviceSelector.tsx';
+import { WaveformVisualizer, FrequencyVisualizer } from './audio/AudioVisualizer.tsx';
 import React from 'react';
 
 interface ListeningScreenProps {
@@ -15,17 +15,15 @@ interface ListeningScreenProps {
 }
 
 export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps) {
-  // Audio capture state
   const audioCapture = useAudioCapture();
   
-  // Song detection state
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionProgress, setDetectionProgress] = useState(0);
   const [showSpotifyNotice, setShowSpotifyNotice] = useState(true);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [currentAudioData, setCurrentAudioData] = useState<Float32Array | null>(null);
 
-  // Subscribe to audio data for real-time visualization
+  // subscribe to audio data updates
   useEffect(() => {
     const unsubscribe = audioCapture.subscribe((audioData) => {
       setCurrentAudioData(audioData);
@@ -34,8 +32,8 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
     return unsubscribe;
   }, [audioCapture]);
 
-  // Mock song detection process
-  const handleDetection = () => {
+  // handles song identification with progress tracking
+  const handleSongIdentification = () => {
     setIsDetecting(true);
     setDetectionProgress(0);
     
@@ -45,34 +43,44 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
           clearInterval(interval);
           setIsDetecting(false);
           
-          // Mock detected song
+          // return mock song data (would be real API call in production)
           onSongDetected({
             title: "Wonderwall",
-            artist: "Oasis",
+            artist: "Oasis", 
             album: "(What's the Story) Morning Glory?",
             albumArt: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center",
             duration: "4:18",
+            // chord data structure for guitar tabs
             chords: [
-              { name: "Em7", fingering: "022030" },
-              { name: "G", fingering: "320003" },
-              { name: "D", fingering: "xx0232" },
-              { name: "C", fingering: "x32010" },
-              { name: "Am", fingering: "x02210" },
-              { name: "F", fingering: "133211" }
-            ]
+              { name: "Em7", fingering: "022030", fret: 0 },
+              { name: "G", fingering: "320003", fret: 3 },
+              { name: "D", fingering: "xx0232", fret: 2 },
+              { name: "C", fingering: "x32010", fret: 0 },
+              { name: "Am", fingering: "x02210", fret: 0 },
+              { name: "F", fingering: "133211", fret: 1 }
+            ],
+            tabUrl: "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382",
+            source: "Ultimate Guitar"
           });
           return 100;
         }
-        return prev + 3;
+        return prev + 2.5;
       });
-    }, 100);
+    }, 120);
   };
 
-  const handleRecordingToggle = () => {
+  const handleStartJamming = () => {
     if (audioCapture.state.isRecording) {
+      // stop current recording session
       audioCapture.stopRecording();
+      setIsDetecting(false);
     } else {
+      // start recording and trigger auto-detection
       audioCapture.startRecording();
+      // wait a bit for recording to start
+      setTimeout(() => {
+        handleSongIdentification();
+      }, 500);
     }
   };
 
@@ -140,7 +148,7 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
             </p>
           </div>
 
-          {/* Audio Settings Panel */}
+          {/* settings stuff */}
           {showAudioSettings && (
             <div className="mb-8">
               <AudioDeviceSelector
@@ -149,31 +157,29 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                 onRefreshDevices={audioCapture.refreshDevices}
                 onStartRecording={audioCapture.startRecording}
                 onStopRecording={audioCapture.stopRecording}
-                audioData={currentAudioData}
+                audioData={currentAudioData || undefined}
                 className="mx-auto"
               />
             </div>
           )}
 
-          {/* Vinyl Record Player with Audio Integration */}
+          {/* vinyl player */}
           <div className="relative flex items-center justify-center mb-16">
             <div className="relative">
               {/* Base Platform */}
               <div className="w-[500px] h-[500px] bg-gradient-to-br from-gray-800 to-gray-900 rounded-full indie-shadow-xl flex items-center justify-center">
-                {/* Vinyl Record */}
+                {/* the record */}
                 <div 
                   className={`vinyl-record w-[400px] h-[400px] cursor-pointer transition-all duration-300 hover:scale-105 ${
                     audioCapture.state.isRecording ? 'vinyl-spinning' : ''
                   } ${isDetecting ? 'vinyl-detecting' : ''}`}
-                  onClick={handleRecordingToggle}
+                  onClick={handleStartJamming}
                 >
-                  {/* Record Grooves */}
                   <div className="absolute inset-4 rounded-full border border-vinyl-groove opacity-30"></div>
                   <div className="absolute inset-8 rounded-full border border-vinyl-groove opacity-20"></div>
                   <div className="absolute inset-12 rounded-full border border-vinyl-groove opacity-15"></div>
                   <div className="absolute inset-16 rounded-full border border-vinyl-groove opacity-10"></div>
                   
-                  {/* Center Label */}
                   <div className="absolute inset-[140px] vinyl-label rounded-full flex items-center justify-center">
                     <div className="text-center text-white">
                       <div className="font-bold text-lg mb-1">ChordZap</div>
@@ -183,10 +189,9 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                     </div>
                   </div>
                   
-                  {/* Center Hole */}
                   <div className="absolute inset-[190px] vinyl-hole rounded-full"></div>
                   
-                  {/* Play/Pause Button Overlay */}
+                  {/* play button */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-24 h-24 bg-primary/90 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
                       {!audioCapture.state.isRecording ? (
@@ -198,7 +203,7 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                   </div>
                 </div>
                 
-                {/* Tonearm */}
+                {/* needle arm thing */}
                 <div className={`absolute top-[100px] right-[50px] w-2 h-32 bg-gray-600 rounded-full origin-bottom transition-transform duration-500 ${
                   audioCapture.state.isRecording ? 'rotate-[-20deg]' : 'rotate-[10deg]'
                 }`}>
@@ -208,14 +213,14 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
             </div>
           </div>
 
-          {/* Audio Visualization */}
+          {/* audio visuals */}
           {audioCapture.state.isRecording && currentAudioData && (
             <div className="mb-8">
               <Card className="max-w-4xl mx-auto rounded-3xl indie-shadow">
                 <CardContent className="p-8">
                   <h3 className="text-xl font-semibold mb-6 text-center">Live Audio Feed</h3>
                   <div className="space-y-6">
-                    {/* Waveform */}
+                    {/* waveform display */}
                     <div>
                       <label className="text-sm font-medium mb-2 block">Waveform</label>
                       <WaveformVisualizer
@@ -227,7 +232,7 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                       />
                     </div>
                     
-                    {/* Frequency Spectrum */}
+                    {/* frequency stuff */}
                     <div>
                       <label className="text-sm font-medium mb-2 block">Frequency Spectrum</label>
                       <FrequencyVisualizer
@@ -249,27 +254,20 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
             {/* Status Text */}
             <div>
               <h3 className="text-2xl font-semibold mb-3 text-foreground">
-                {audioCapture.state.isRecording ? 'Listening for music...' : 'Ready to detect chords'}
+                {isDetecting ? 'Identifying song and finding chords...' : 
+                 audioCapture.state.isRecording ? 'Listening for music...' : 
+                 'Ready to jam'}
               </h3>
               <p className="text-muted-foreground text-lg">
-                {audioCapture.state.isRecording 
-                  ? 'Play a song and I\'ll identify the chord progression' 
-                  : 'Click the vinyl record above to start listening'
+                {isDetecting ? 'Searching chord databases from Ultimate Guitar and other sources' :
+                 audioCapture.state.isRecording 
+                  ? 'Play a song and I\'ll automatically find the chords from guitar tab sites' 
+                  : 'Click the vinyl record or "Start Jamming" to begin instant chord detection'
                 }
               </p>
             </div>
 
-            {/* Detection Button - Only show when recording */}
-            {audioCapture.state.isRecording && !isDetecting && (
-              <Button
-                size="lg"
-                className="px-10 py-6 text-lg rounded-2xl indie-shadow-lg"
-                onClick={handleDetection}
-              >
-                <Zap className="w-6 h-6 mr-3" />
-                Detect Chords Now
-              </Button>
-            )}
+            {/* detection happens automatically now */}
 
             {/* Detection Progress */}
             {isDetecting && (
@@ -277,12 +275,12 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
                 <CardContent className="p-8">
                   <Progress value={detectionProgress} className="h-4 rounded-full mb-6" />
                   <div className="text-center">
-                    <p className="text-xl font-semibold text-foreground mb-2">Analyzing audio...</p>
+                    <p className="text-xl font-semibold text-foreground mb-2">Finding chords...</p>
                     <p className="text-muted-foreground">
-                      {detectionProgress < 30 && "Listening to the music"}
-                      {detectionProgress >= 30 && detectionProgress < 60 && "Detecting chord patterns"}
-                      {detectionProgress >= 60 && detectionProgress < 90 && "Matching with chord library"}
-                      {detectionProgress >= 90 && "Almost there!"}
+                      {detectionProgress < 30 && "Identifying the song"}
+                      {detectionProgress >= 30 && detectionProgress < 60 && "Searching Ultimate Guitar database"}
+                      {detectionProgress >= 60 && detectionProgress < 90 && "Retrieving chord tabs and fingerings"}
+                      {detectionProgress >= 90 && "Loading chord diagrams!"}
                     </p>
                   </div>
                 </CardContent>

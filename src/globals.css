@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -135,23 +139,18 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground font-normal;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    letter-spacing: -0.011em;
-  }
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-weight: var(--font-weight-normal);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.011em;
 }
 
 /**
  * Base typography with a more casual, indie feel
  */
-@layer base {
-  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+/* Base typography styles */
     h1 {
       font-size: 2.5rem;
       font-weight: var(--font-weight-bold);
@@ -205,15 +204,12 @@
       font-weight: var(--font-weight-normal);
       line-height: 1.5;
     }
-  }
-}
 
 html {
   font-size: var(--font-size);
 }
 
 /* ChordZap utility classes */
-@layer utilities {
   .bg-spotify {
     background-color: var(--color-spotify-green);
   }
@@ -283,7 +279,6 @@ html {
     border: 2px solid var(--color-border);
     border-radius: var(--radius-lg);
   }
-}
 
 /* Vinyl record animations */
 @keyframes vinyl-spin {

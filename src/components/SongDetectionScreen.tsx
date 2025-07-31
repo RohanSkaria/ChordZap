@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Progress } from './ui/progress';
 import { ArrowLeft, Play, Pause, Volume2, Zap } from 'lucide-react';
+import React from 'react';
 
 interface SongDetectionScreenProps {
   source: 'spotify' | 'file' | null;
@@ -19,13 +20,13 @@ export function SongDetectionScreen({ source, onSongDetected, onBack }: SongDete
     setIsDetecting(true);
     setProgress(0);
     
-    // Simulate detection progress
+    // simulate detection progress
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
           setIsDetecting(false);
-          // Simulate detected song
+          // simulate detected song
           onSongDetected({
             title: "Wonderwall",
             artist: "Oasis",
@@ -48,14 +49,14 @@ export function SongDetectionScreen({ source, onSongDetected, onBack }: SongDete
     }, 50);
   };
 
-  // Generate mock waveform data
+  // generate mock waveform data
   const waveformData = Array.from({ length: 200 }, (_, i) => 
     Math.sin(i * 0.1) * 50 + Math.random() * 30 - 15
   );
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
+      {/* header */}
       <header className="border-b border-border px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center">
           <Button variant="ghost" onClick={onBack} className="mr-4">
@@ -66,7 +67,7 @@ export function SongDetectionScreen({ source, onSongDetected, onBack }: SongDete
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* main content */}
       <main className="flex-1 flex items-center justify-center px-8 py-12">
         <div className="max-w-4xl w-full">
           <div className="text-center mb-12">
@@ -78,7 +79,7 @@ export function SongDetectionScreen({ source, onSongDetected, onBack }: SongDete
             </p>
           </div>
 
-          {/* Audio Player Mockup */}
+          {/* audio player mockup */}
           <Card className="mb-8">
             <CardContent className="p-8">
               <div className="flex items-center gap-6 mb-6">
@@ -100,7 +101,7 @@ export function SongDetectionScreen({ source, onSongDetected, onBack }: SongDete
                 </Button>
               </div>
 
-              {/* Waveform Visualization */}
+              {/* waveform visualization */}
               <div className="relative h-24 bg-muted rounded-lg p-4 overflow-hidden">
                 <div className="flex items-center justify-center h-full gap-1">
                   {waveformData.map((height, index) => (
@@ -121,7 +122,7 @@ export function SongDetectionScreen({ source, onSongDetected, onBack }: SongDete
             </CardContent>
           </Card>
 
-          {/* Detection Button */}
+          {/* detection button */}
           <div className="text-center">
             <Button
               size="lg"

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { cn } from '../ui/utils';
+import { cn } from '../ui/utils.ts';
 
 interface AudioVisualizerProps {
   audioData?: Float32Array;
@@ -102,7 +102,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     
     if (!data || data.length === 0) return;
 
-    // Calculate RMS level
+    // calculate rms level
     let sum = 0;
     for (let i = 0; i < data.length; i++) {
       sum += data[i] * data[i];
@@ -156,7 +156,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       return;
     }
 
-    // Set background
+    // set background
     if (backgroundColor !== 'transparent') {
       ctx.fillStyle = backgroundColor;
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
