@@ -105,7 +105,8 @@ router.post('/', [
     });
 
     if (existingSong) {
-      return res.status(409).json({ message: 'song already exists' });
+      // return the existing song instead of throwing an error
+      return res.status(200).json(existingSong);
     }
 
     const song = new Song(req.body);
