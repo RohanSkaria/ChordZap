@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button.tsx';
 import { Card, CardContent } from './ui/card.tsx';
 import { Progress } from './ui/progress.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
 import { ArrowLeft, Music, X, Play, Pause, Zap, Settings } from 'lucide-react';
 import { useAudioCapture } from '../hooks/useAudioCapture.ts';
+import { useSongDetection } from '../hooks/useSongDetection.ts';
 import { AudioDeviceSelector } from './audio/AudioDeviceSelector.tsx';
 import { WaveformVisualizer, FrequencyVisualizer } from './audio/AudioVisualizer.tsx';
 import React from 'react';
 
-interface ListeningScreenProps {
-  onSongDetected: (song: any) => void;
-  onBack: () => void;
-}
-
-export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps) {
+export function ListeningScreen() {
+  const navigate = useNavigate();
   const audioCapture = useAudioCapture();
+  const songDetection = useSongDetection();
   
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionProgress, setDetectionProgress] = useState(0);
@@ -32,41 +31,71 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
     return unsubscribe;
   }, [audioCapture]);
 
-  // handles song identification with progress tracking
-  const handleSongIdentification = () => {
+  // start session when component mounts
+  useEffect(() => {
+    songDetection.startSession();
+    
+    // cleanup: end session when component unmounts
+    return () => {
+      songDetection.endSession();
+    };
+  }, []);
+
+  // handles song identification with progress tracking and real api calls
+  const handleSongIdentification = async () => {
     setIsDetecting(true);
     setDetectionProgress(0);
     
     const interval = setInterval(() => {
       setDetectionProgress(prev => {
-        if (prev >= 100) {
+        if (prev >= 90) {
           clearInterval(interval);
-          setIsDetecting(false);
-          
-          // return mock song data (would be real API call in production)
-          onSongDetected({
-            title: "Wonderwall",
-            artist: "Oasis", 
-            album: "(What's the Story) Morning Glory?",
-            albumArt: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center",
-            duration: "4:18",
-            // chord data structure for guitar tabs
-            chords: [
-              { name: "Em7", fingering: "022030", fret: 0 },
-              { name: "G", fingering: "320003", fret: 3 },
-              { name: "D", fingering: "xx0232", fret: 2 },
-              { name: "C", fingering: "x32010", fret: 0 },
-              { name: "Am", fingering: "x02210", fret: 0 },
-              { name: "F", fingering: "133211", fret: 1 }
-            ],
-            tabUrl: "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382",
-            source: "Ultimate Guitar"
-          });
-          return 100;
+          return 90; // stop at 90%, api call will finish it
         }
         return prev + 2.5;
       });
     }, 120);
+
+    try {
+      // mock song data for iteration 1 demo
+      const mockSongData = {
+        title: "Wonderwall",
+        artist: "Oasis", 
+        album: "(What's the Story) Morning Glory?",
+        albumArt: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center",
+        duration: "4:18",
+        chords: [
+          { name: "Em7", fingering: "022030", fret: 0 },
+          { name: "G", fingering: "320003", fret: 3 },
+          { name: "D", fingering: "xx0232", fret: 2 },
+          { name: "C", fingering: "x32010", fret: 0 },
+          { name: "Am", fingering: "x02210", fret: 0 },
+          { name: "F", fingering: "133211", fret: 1 }
+        ],
+        tabUrl: "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382",
+        source: "Ultimate Guitar"
+      };
+
+      // save song to database and add to session
+      const detectedSong = await songDetection.detectSong(mockSongData);
+      
+      if (detectedSong) {
+        clearInterval(interval);
+        setDetectionProgress(100);
+        
+        // wait a moment then navigate
+        setTimeout(() => {
+          navigate(`/chords/${detectedSong.id}`, { 
+            state: detectedSong
+          });
+        }, 500);
+      }
+    } catch (error) {
+      console.error('song detection failed:', error);
+      clearInterval(interval);
+      setIsDetecting(false);
+      setDetectionProgress(0);
+    }
   };
 
   const handleStartJamming = () => {
@@ -117,7 +146,7 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
       <header className="px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <Button variant="ghost" onClick={onBack} className="mr-4 rounded-2xl">
+            <Button variant="ghost" onClick={() => navigate('/')} className="mr-4 rounded-2xl">
               <ArrowLeft className="w-5 h-5 mr-2" />
               Back
             </Button>
@@ -288,10 +317,18 @@ export function ListeningScreen({ onSongDetected, onBack }: ListeningScreenProps
             )}
 
             {/* Error Display */}
-            {audioCapture.state.error && (
+            {(audioCapture.state.error || songDetection.error) && (
               <Alert className="max-w-md mx-auto border-2 border-destructive/20 bg-destructive/5 rounded-3xl">
                 <AlertDescription className="text-lg">
-                  {audioCapture.state.error}
+                  {audioCapture.state.error || songDetection.error}
+                  {songDetection.error && (
+                    <button 
+                      onClick={songDetection.clearError}
+                      className="ml-2 text-xs underline"
+                    >
+                      dismiss
+                    </button>
+                  )}
                 </AlertDescription>
               </Alert>
             )}

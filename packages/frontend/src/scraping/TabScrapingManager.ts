@@ -44,7 +44,7 @@ export class TabScrapingManager {
     const ultimateGuitar = new UltimateGuitarScraper();
     this.scrapers.set('ultimate-guitar', ultimateGuitar);
     
-    // Initialize scraper stats
+   
     this.scraperStats.set('ultimate-guitar', {
       name: 'Ultimate Guitar',
       isActive: true,
@@ -61,7 +61,7 @@ export class TabScrapingManager {
     this.logger.log('info', `Initialized ${this.scrapers.size} scrapers`, 'manager');
   }
 
-  // Main search method that aggregates results from multiple sources
+  // main search method that aggregates results from multiple sources
   async searchTabs(
     query: string, 
     options: ScrapingOptions = {}, 
@@ -70,7 +70,7 @@ export class TabScrapingManager {
     const startTime = Date.now();
     const cacheKey = this.generateCacheKey(query, options, filters);
     
-    // Check cache first
+ 
     const cachedResults = this.cache.get(cacheKey);
     if (cachedResults) {
       this.logger.log('info', `Cache hit for query: ${query}`, 'manager');
@@ -88,7 +88,6 @@ export class TabScrapingManager {
     const errors: string[] = [];
     const activeSources: string[] = [];
 
-    // Get active scrapers based on filters
     const activeScrapers = this.getActiveScrapers(filters);
     
     if (activeScrapers.length === 0) {
@@ -102,7 +101,6 @@ export class TabScrapingManager {
       };
     }
 
-    // Search all active scrapers concurrently
     const searchPromises = activeScrapers.map(async ([name, scraper]) => {
       try {
         const searchStartTime = Date.now();
@@ -111,7 +109,6 @@ export class TabScrapingManager {
         const result = await scraper.search(query, options);
         const responseTime = Date.now() - searchStartTime;
         
-        // Update scraper stats
         this.updateScraperStats(name, result.success, responseTime);
         
         if (result.success && result.data) {
@@ -141,13 +138,10 @@ export class TabScrapingManager {
       }
     });
 
-    // Wait for all searches to complete
     await Promise.allSettled(searchPromises);
 
-    // Sort and deduplicate results
     const sortedResults = this.sortAndDeduplicateResults(results, options);
     
-    // Cache the results
     if (sortedResults.length > 0) {
       this.cache.set(cacheKey, sortedResults);
     }
@@ -169,7 +163,6 @@ export class TabScrapingManager {
     };
   }
 
-  // Get specific tab by ID from a specific source
   async getTab(source: string, tabId: string): Promise<TabData | null> {
     const scraper = this.scrapers.get(source);
     if (!scraper) {
@@ -194,12 +187,10 @@ export class TabScrapingManager {
     }
   }
 
-  // Get scraper information and statistics
   getScraperInfo(): ScraperInfo[] {
     return Array.from(this.scraperStats.values());
   }
 
-  // Enable/disable specific scrapers
   setScraperActive(scraperName: string, active: boolean): void {
     const stats = this.scraperStats.get(scraperName);
     if (stats) {
@@ -208,22 +199,19 @@ export class TabScrapingManager {
     }
   }
 
-  // Clear cache manually
+
   clearCache(): void {
     this.cache.clear();
     this.logger.log('info', 'Cache cleared', 'manager');
   }
 
-  // Get cache statistics
   getCacheStats(): { size: number; hitRate: number } {
-    // Simple implementation - could be enhanced with more detailed stats
     return {
       size: this.cache.size(),
-      hitRate: 0.75 // Mock hit rate
+      hitRate: 0.75 
     };
   }
 
-  // Private helper methods
 
   private getActiveScrapers(filters: SearchFilters): Array<[string, BaseScraper]> {
     const activeScrapers: Array<[string, BaseScraper]> = [];
@@ -235,7 +223,6 @@ export class TabScrapingManager {
         continue;
       }
 
-      // Apply source filters
       if (filters.excludeSources?.includes(name)) {
         continue;
       }
@@ -254,12 +241,10 @@ export class TabScrapingManager {
 
   private applyFilters(results: TabData[], filters: SearchFilters): TabData[] {
     return results.filter(tab => {
-      // Rating filter
       if (filters.minRating && tab.rating && tab.rating < filters.minRating) {
         return false;
       }
 
-      // Difficulty filter
       if (filters.maxDifficulty) {
         const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
         const maxLevel = difficultyOrder[filters.maxDifficulty];
@@ -270,7 +255,6 @@ export class TabScrapingManager {
         }
       }
 
-      // Content type filters
       if (filters.requireChords && tab.chords.length === 0) {
         return false;
       }
@@ -284,7 +268,6 @@ export class TabScrapingManager {
   }
 
   private sortAndDeduplicateResults(results: TabData[], options: ScrapingOptions): TabData[] {
-    // Remove duplicates based on song title and artist
     const seen = new Set<string>();
     const uniqueResults = results.filter(tab => {
       const key = `${tab.song.artist.toLowerCase()}-${tab.song.title.toLowerCase()}`;
@@ -295,21 +278,21 @@ export class TabScrapingManager {
       return true;
     });
 
-    // Sort by rating (descending) and then by source preference
+  
     return uniqueResults.sort((a, b) => {
-      // Primary sort: rating
+  
       const ratingDiff = (b.rating || 0) - (a.rating || 0);
       if (Math.abs(ratingDiff) > 0.1) {
         return ratingDiff;
       }
 
-      // Secondary sort: source preference (Ultimate Guitar first)
+   
       if (a.source !== b.source) {
         if (a.source === 'Ultimate Guitar') return -1;
         if (b.source === 'Ultimate Guitar') return 1;
       }
 
-      // Tertiary sort: alphabetical by title
+    
       return a.song.title.localeCompare(b.song.title);
     });
   }
@@ -320,11 +303,11 @@ export class TabScrapingManager {
 
     stats.lastUsed = new Date();
     
-    // Update success rate (simple moving average)
+ 
     const weight = 0.1;
     stats.successRate = stats.successRate * (1 - weight) + (success ? 1 : 0) * weight;
     
-    // Update average response time
+ 
     if (responseTime > 0) {
       stats.averageResponseTime = stats.averageResponseTime * (1 - weight) + responseTime * weight;
     }
@@ -336,7 +319,7 @@ export class TabScrapingManager {
 
     stats.rateLimitStatus = 'limited';
     
-    // Re-enable after retry period
+  
     setTimeout(() => {
       if (stats.rateLimitStatus === 'limited') {
         stats.rateLimitStatus = 'ok';
@@ -361,14 +344,13 @@ export class TabScrapingManager {
   }
 
   private startCacheCleanup(): void {
-    // Clean up cache every 10 minutes
     setInterval(() => {
       this.cache.cleanup();
       this.logger.log('info', 'Cache cleanup completed', 'manager');
     }, 10 * 60 * 1000);
   }
 
-  // Public utility methods
+
   
   getSupportedSources(): string[] {
     return Array.from(this.scrapers.keys());
@@ -384,7 +366,7 @@ export class TabScrapingManager {
     
     const checks = Array.from(this.scrapers.entries()).map(async ([name, scraper]) => {
       try {
-        // Try a simple search to test scraper health
+  
         const result = await scraper.search('test', { maxResults: 1 });
         health[name] = result.success || !result.rateLimitHit;
       } catch (error) {

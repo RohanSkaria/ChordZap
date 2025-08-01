@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Button } from './ui/button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.tsx';
 import { Badge } from './ui/badge.tsx';
@@ -9,12 +10,27 @@ import { ArrowLeft, Download, Share, Play, Music, Star, Guitar, Clock, Hash } fr
 import { ImageWithFallback } from './figma/ImageWithFallback.tsx';
 import React from 'react';
 
-interface ChordDisplayScreenProps {
-  song: any;
-  onBack: () => void;
-}
-
-export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
+export function ChordDisplayScreen() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { songId } = useParams();
+  
+  // get song data from navigation state or use fallback
+  const song = location.state || {
+    title: "Sample Song",
+    artist: "Sample Artist", 
+    album: "Sample Album",
+    albumArt: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center",
+    duration: "4:18",
+    chords: [
+      { name: "C", fingering: "x32010", fret: 0 },
+      { name: "G", fingering: "320003", fret: 3 },
+      { name: "Am", fingering: "x02210", fret: 0 },
+      { name: "F", fingering: "133211", fret: 1 }
+    ],
+    tabUrl: "https://tabs.ultimate-guitar.com/sample",
+    source: "Ultimate Guitar"
+  };
   const [showTabs, setShowTabs] = useState(false);
   const [selectedChord, setSelectedChord] = useState(0);
 
@@ -57,7 +73,7 @@ export function ChordDisplayScreen({ song, onBack }: ChordDisplayScreenProps) {
       <header className="px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <Button variant="ghost" onClick={onBack} className="mr-4 rounded-2xl">
+            <Button variant="ghost" onClick={() => navigate('/listen')} className="mr-4 rounded-2xl">
               <ArrowLeft className="w-5 h-5 mr-2" />
               Back
             </Button>

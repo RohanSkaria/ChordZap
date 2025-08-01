@@ -1,12 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button.tsx';
 import { Music, Zap, Guitar, Heart } from 'lucide-react';
 
-interface LandingScreenProps {
-  onGetStarted: () => void;
-}
+export function LandingScreen() {
+  const navigate = useNavigate();
 
-export function LandingScreen({ onGetStarted }: LandingScreenProps) {
+  const handleGetStarted = () => {
+    navigate('/listen');
+  };
   return (
     <div className="min-h-screen flex flex-col indie-gradient">
       {/* Header */}
@@ -54,7 +56,7 @@ export function LandingScreen({ onGetStarted }: LandingScreenProps) {
             <Button 
               size="lg" 
               className="px-10 py-6 text-lg rounded-2xl indie-shadow-lg hover:indie-shadow transition-all duration-300 hover:scale-105"
-              onClick={onGetStarted}
+              onClick={handleGetStarted}
             >
               <Music className="w-6 h-6 mr-3" />
               Start Listening
