@@ -18,7 +18,7 @@ connectDB();
 // middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN || 'https://frontend-dot-chordzapcloud.ue.r.appspot.com',
   credentials: true
 }));
 app.use(morgan('combined'));

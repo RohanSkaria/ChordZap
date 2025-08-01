@@ -1,0 +1,16 @@
+# Skip dependency files so npm ci doesn't run
+package.json
+package-lock.json
+yarn.lock
+node_modules/
+src/
+public/
+.git/
+.gitignore
+README.md
+*.log
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

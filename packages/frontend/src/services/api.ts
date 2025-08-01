@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@monorepo/shared';
 
 // create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001',
+  baseURL: process.env.REACT_APP_API_URL || 'https://chordzapcloud.ue.r.appspot.com',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
