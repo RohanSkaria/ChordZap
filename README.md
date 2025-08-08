@@ -1,7 +1,7 @@
 # Monorepo for ChordZap
 
 ## Implemented: 
-- Created a foundation for a shazam style chord view web application. Theres a fully fucnitonal backend and front end. The backend was made using Typescript and Express.js. It is also connected to a MongoDB with API endpoints. The schema includes, song models with chod information, artist details, and meta data. The front end is a react application that provides a UI with 4 main screens - shown below. This implementation includes custom hooks for audio capture, song detection, and tab search.
+- Created a foundation for a shazam style chord view web application. Theres a fully fucnitonal backend and front end. The backend was made using Typescript and Express.js. It is also connected to a MongoDB with API endpoints. The schema includes, song models with chord information, artist details, and meta data. The front end is a react application that provides a UI with 4 main screens - shown below. This implementation includes custom hooks for audio capture, song detection, and tab search.
 
 ## ToDo:
 - API integration for song detection
