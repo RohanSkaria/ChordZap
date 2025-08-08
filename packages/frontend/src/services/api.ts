@@ -7,6 +7,8 @@ const api = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'X-ChordZap-Client': 'Frontend',
+    'X-ChordZap-Version': '2.0',
   },
 });
 
@@ -119,7 +121,21 @@ export const healthApi = {
 // audio analysis api
 export const audioApi = {
   analyze: async (samples: number[], sampleRate?: number) => {
-    const response = await api.post('/api/audio/analyze', { samples, sampleRate });
+    console.log('🌐 [NETWORK] Making API request to /api/audio/analyze');
+    console.log('🌐 [NETWORK] Check Network tab in DevTools for this request');
+    
+    const response = await api.post('/api/audio/analyze', 
+      { samples, sampleRate },
+      {
+        headers: {
+          'X-ChordZap-Action': 'Audio-Analysis',
+          'X-ChordZap-Samples': samples.length.toString(),
+          'X-ChordZap-SampleRate': (sampleRate || 44100).toString(),
+        }
+      }
+    );
+    
+    console.log('🌐 [NETWORK] API response received');
     return response.data as { song: any; confidence: number; analyzedFrames: number; sampleRate: number };
   }
 };

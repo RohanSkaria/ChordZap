@@ -1,10 +1,10 @@
 import React from 'react';
-import { Button } from '../ui/button.tsx';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.tsx';
+import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ChevronDown } from 'lucide-react';
-import { Alert, AlertDescription } from '../ui/alert.tsx';
-import { Badge } from '../ui/badge.tsx';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card.tsx';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Badge } from '../ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { 
   Headphones, 
   Mic, 
@@ -15,9 +15,9 @@ import {
   CheckCircle2,
   Settings
 } from 'lucide-react';
-import { cn } from '../ui/utils.ts';
+import { cn } from '../ui/utils';
 import { AudioDevice, AudioCaptureState } from '../../hooks/useAudioCapture';
-import { LevelMeter } from './AudioVisualizer.tsx';
+import { LevelMeter } from './AudioVisualizer';
 
 interface AudioDeviceSelectorProps {
   state: AudioCaptureState;

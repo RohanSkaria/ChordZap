@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { cn } from '../ui/utils.ts';
+import { cn } from '../ui/utils';
 
 interface AudioVisualizerProps {
   audioData?: Float32Array;

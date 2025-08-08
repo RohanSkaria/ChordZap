@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from './ui/button.tsx';
+import { Button } from './ui/button';
 import { Music, Zap, Guitar, Heart } from 'lucide-react';
 
 interface LandingScreenProps {

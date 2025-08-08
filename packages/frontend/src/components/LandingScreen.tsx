@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from './ui/button.tsx';
+import { Button } from './ui/button';
 import { Music, Zap, Guitar, Heart } from 'lucide-react';
 
 export function LandingScreen() {

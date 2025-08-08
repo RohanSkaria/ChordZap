@@ -42,9 +42,11 @@ export const useAudioCapture = (): AudioCaptureHook => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const audioBufferRef = useRef<Float32Array | null>(null);
+  const accumulatedAudioRef = useRef<number[]>([]);
   const subscribersRef = useRef<Set<(audioData: Float32Array) => void>>(new Set());
   const animationFrameRef = useRef<number | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const lastLogTimeRef = useRef<number>(0);
 
   
   const checkBrowserSupport = useCallback(() => {
@@ -136,12 +138,30 @@ export const useAudioCapture = (): AudioCaptureHook => {
     
     processorRef.current.onaudioprocess = (event) => {
       const inputBuffer = event.inputBuffer.getChannelData(0);
+      
+      // Accumulate audio data for longer recordings
+      accumulatedAudioRef.current.push(...inputBuffer);
+      
+      // Keep only last 15 seconds of audio (44100 * 15)
+      const maxSamples = 44100 * 15;
+      if (accumulatedAudioRef.current.length > maxSamples) {
+        accumulatedAudioRef.current = accumulatedAudioRef.current.slice(-maxSamples);
+      }
+      
+      // Update current buffer for real-time processing
       audioBufferRef.current = new Float32Array(inputBuffer);
       
-
+      // Notify subscribers of current frame
       subscribersRef.current.forEach(callback => {
         callback(audioBufferRef.current!);
       });
+      
+      // Log every 2 seconds instead of every frame
+      const now = Date.now();
+      if (now - lastLogTimeRef.current > 2000) {
+        console.log(`🎙️ [AUDIO] Accumulated ${accumulatedAudioRef.current.length} samples (${(accumulatedAudioRef.current.length / 44100).toFixed(2)}s)`);
+        lastLogTimeRef.current = now;
+      }
     };
 
     return audioContextRef.current;
@@ -212,6 +232,10 @@ export const useAudioCapture = (): AudioCaptureHook => {
       if (!state.selectedDevice) {
         throw new Error('No audio device selected');
       }
+
+      // Clear accumulated audio buffer when starting new recording
+      accumulatedAudioRef.current = [];
+      console.log('🎙️ [AUDIO] Cleared accumulated audio buffer - starting fresh recording');
 
       // Initialize audio context
       const audioContext = initializeAudioContext();
@@ -300,7 +324,14 @@ export const useAudioCapture = (): AudioCaptureHook => {
 
 
   const getAudioBuffer = useCallback((): Float32Array | null => {
-    return audioBufferRef.current;
+    // Return the accumulated audio buffer instead of just the current frame
+    if (accumulatedAudioRef.current.length === 0) {
+      console.log('🎙️ [AUDIO] No accumulated audio data available');
+      return null;
+    }
+    
+    console.log(`🎙️ [AUDIO] Returning ${accumulatedAudioRef.current.length} samples (${(accumulatedAudioRef.current.length / 44100).toFixed(2)}s) of accumulated audio`);
+    return new Float32Array(accumulatedAudioRef.current);
   }, []);
 
 

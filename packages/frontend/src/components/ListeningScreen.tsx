@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from './ui/button.tsx';
-import { Card, CardContent } from './ui/card.tsx';
-import { Progress } from './ui/progress.tsx';
-import { Alert, AlertDescription } from './ui/alert.tsx';
+import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
+import { Progress } from './ui/progress';
+import { Alert, AlertDescription } from './ui/alert';
 import { ArrowLeft, Music, X, Play, Pause, Zap, Settings } from 'lucide-react';
-import { useAudioCapture } from '../hooks/useAudioCapture.ts';
-import { useSongDetection } from '../hooks/useSongDetection.ts';
-import { AudioDeviceSelector } from './audio/AudioDeviceSelector.tsx';
-import { WaveformVisualizer, FrequencyVisualizer } from './audio/AudioVisualizer.tsx';
+import { useAudioCapture } from '../hooks/useAudioCapture';
+import { useSongDetection } from '../hooks/useSongDetection';
+import { AudioDeviceSelector } from './audio/AudioDeviceSelector';
+import { WaveformVisualizer, FrequencyVisualizer } from './audio/AudioVisualizer';
 import React from 'react';
 
 export function ListeningScreen() {
@@ -21,6 +21,7 @@ export function ListeningScreen() {
   const [showSpotifyNotice, setShowSpotifyNotice] = useState(true);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [currentAudioData, setCurrentAudioData] = useState<Float32Array | null>(null);
+  const [lastApiResult, setLastApiResult] = useState<{type: 'api' | 'mock' | 'none', song?: any, timestamp?: Date}>({type: 'none'});
 
   // subscribe to audio data updates
   useEffect(() => {
@@ -46,6 +47,8 @@ export function ListeningScreen() {
     setIsDetecting(true);
     setDetectionProgress(0);
     
+    console.log('🎤 [DETECTION] Song identification started');
+    
     const interval = setInterval(() => {
       setDetectionProgress(prev => {
         if (prev >= 90) {
@@ -60,14 +63,39 @@ export function ListeningScreen() {
       // prefer real mic detection when audio data is present
       const audioData = audioCapture.getAudioBuffer();
       let detectedSong = null as any;
-      if (audioData && audioData.length > 2048) {
-        // send a short slice to backend (about ~2-3s depending on buffer)
-        const slice = Array.from(audioData.slice(0, Math.min(audioData.length, 44100 * 3)));
-        detectedSong = await songDetection.detectFromAudio(slice, 44100);
+      
+      if (audioData && audioData.length > 44100 * 2) {  // Need at least 2 seconds
+        console.log('🎤 [DETECTION] Audio data available - attempting real API detection');
+        console.log(`🎤 [DETECTION] Audio buffer: ${audioData.length} samples`);
+        console.log(`🎤 [DETECTION] Duration: ${(audioData.length / 44100).toFixed(2)} seconds`);
+        
+        // send 5-10 seconds to ACR Cloud for better recognition
+        const minSamples = 44100 * 5;  // 5 seconds minimum
+        const maxSamples = 44100 * 10; // 10 seconds maximum
+        const slice = Array.from(audioData.slice(0, Math.min(audioData.length, maxSamples)));
+        
+        if (slice.length < minSamples) {
+          console.log(`🎤 [DETECTION] ⚠️  Audio too short (${(slice.length / 44100).toFixed(2)}s) - need at least 5s for ACR Cloud`);
+          console.log('🎤 [DETECTION] Waiting for more audio data...');
+          // Don't attempt API call with insufficient data
+        } else {
+          console.log(`🎤 [DETECTION] ✅ Sending ${slice.length} samples (${(slice.length / 44100).toFixed(2)}s) to ACR API...`);
+          detectedSong = await songDetection.detectFromAudio(slice, 44100);
+        }
+        
+        // Update debug status based on API response
+        if (detectedSong && detectedSong.source === 'API Detection') {
+          setLastApiResult({type: 'api', song: detectedSong, timestamp: new Date()});
+        } else if (detectedSong && detectedSong.source === 'Mock Data') {
+          setLastApiResult({type: 'mock', song: detectedSong, timestamp: new Date()});
+        }
+      } else {
+        console.log('🎤 [DETECTION] No audio data available - will use mock fallback');
       }
 
       // fallback to mock if detection could not run
       if (!detectedSong) {
+        console.log('🎤 [DETECTION] API detection returned null - using frontend mock fallback');
         const mockSongData = {
           title: "Wonderwall",
           artist: "Oasis", 
@@ -83,12 +111,17 @@ export function ListeningScreen() {
             { name: "F", fingering: "133211", fret: 1 }
           ],
           tabUrl: "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382",
-          source: "Ultimate Guitar"
+          source: "Frontend Mock"
         };
         detectedSong = await songDetection.detectSong(mockSongData);
       }
       
       if (detectedSong) {
+        console.log('🎤 [DETECTION] ✅ Detection complete!');
+        console.log(`🎤 [DETECTION] Final song: "${detectedSong.title}" by ${detectedSong.artist}`);
+        console.log(`🎤 [DETECTION] Source: ${detectedSong.source}`);
+        console.log('🎤 [DETECTION] Navigating to chords page...');
+        
         clearInterval(interval);
         setDetectionProgress(100);
         
@@ -100,7 +133,7 @@ export function ListeningScreen() {
         }, 500);
       }
     } catch (error) {
-      console.error('song detection failed:', error);
+      console.error('🎤 [DETECTION] ❌ Song detection failed:', error);
       clearInterval(interval);
       setIsDetecting(false);
       setDetectionProgress(0);
@@ -115,10 +148,12 @@ export function ListeningScreen() {
     } else {
       // start recording and trigger auto-detection
       audioCapture.startRecording();
-      // wait a bit for recording to start
+      console.log('🎤 [DETECTION] Started recording - waiting 7 seconds to collect enough audio for ACR Cloud...');
+      // wait longer for enough audio to accumulate (5+ seconds needed)
       setTimeout(() => {
+        console.log('🎤 [DETECTION] 7 seconds elapsed - attempting song identification...');
         handleSongIdentification();
-      }, 500);
+      }, 7000);  // Wait 7 seconds to ensure we have 5+ seconds of audio
     }
   };
 
@@ -299,7 +334,7 @@ export function ListeningScreen() {
               <p className="text-muted-foreground text-lg">
                 {isDetecting ? 'Searching chord databases from Ultimate Guitar and other sources' :
                  audioCapture.state.isRecording 
-                  ? 'Play a song and I\'ll automatically find the chords from guitar tab sites' 
+                  ? 'Recording audio... Play a song for 5+ seconds for best recognition results' 
                   : 'Click the vinyl record or "Start Jamming" to begin instant chord detection'
                 }
               </p>
@@ -342,7 +377,30 @@ export function ListeningScreen() {
               </Alert>
             )}
 
-            {/* Features */}
+            {/* Debug Panel for Iteration 2 */}
+          {lastApiResult.type !== 'none' && (
+            <Card className="max-w-md mx-auto rounded-3xl indie-shadow mb-8">
+              <CardContent className="p-6">
+                <h4 className="font-semibold mb-3 flex items-center">
+                  {lastApiResult.type === 'api' ? '🎉' : 'ℹ️'} API Status (Debug)
+                </h4>
+                <div className="text-sm space-y-1">
+                  <p><strong>Type:</strong> {lastApiResult.type === 'api' ? '✅ Real ACR Cloud Detection' : '❌ Mock/Fallback Data'}</p>
+                  {lastApiResult.song && (
+                    <>
+                      <p><strong>Song:</strong> "{lastApiResult.song.title}"</p>
+                      <p><strong>Artist:</strong> {lastApiResult.song.artist}</p>
+                    </>
+                  )}
+                  {lastApiResult.timestamp && (
+                    <p><strong>Time:</strong> {lastApiResult.timestamp.toLocaleTimeString()}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Features */}
             {!audioCapture.state.isRecording && !isDetecting && (
               <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto mt-16">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">

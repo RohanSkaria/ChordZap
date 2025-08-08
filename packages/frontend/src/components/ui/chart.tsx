@@ -2,7 +2,7 @@
 
 import React from "react";
 import * as RechartsPrimitive from "recharts";
-import { cn } from "./utils.ts";
+import { cn } from "./utils";
 
 // theme options for charts
 const THEMES = { light: "", dark: ".dark" } as const;

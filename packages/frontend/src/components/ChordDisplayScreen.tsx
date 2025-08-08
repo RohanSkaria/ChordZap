@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Button } from './ui/button.tsx';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card.tsx';
-import { Badge } from './ui/badge.tsx';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
-import { Switch } from './ui/switch.tsx';
-import { Label } from './ui/label.tsx';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Switch } from './ui/switch';
+import { Label } from './ui/label';
 import { ArrowLeft, Download, Share, Play, Music, Star, Guitar, Clock, Hash } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback.tsx';
+import { ImageWithFallback } from './figma/ImageWithFallback';
 import React from 'react';
 
 export function ChordDisplayScreen() {

@@ -22,8 +22,17 @@ export async function identifyByBuffer(audioBuffer: Buffer): Promise<ACRIdentify
   const accessSecret = process.env.ACR_ACCESS_SECRET;
 
   if (!host || !accessKey || !accessSecret) {
+    console.error('🎵 [ACR API] Missing environment variables:');
+    console.error('🎵 [ACR API] ACR_HOST:', host ? '✓' : '❌');
+    console.error('🎵 [ACR API] ACR_ACCESS_KEY:', accessKey ? '✓' : '❌');
+    console.error('🎵 [ACR API] ACR_ACCESS_SECRET:', accessSecret ? '✓' : '❌');
     return null;
   }
+
+  console.log('🎵 [ACR API] Environment variables loaded:');
+  console.log('🎵 [ACR API] Host:', host);
+  console.log('🎵 [ACR API] Access Key:', accessKey ? accessKey.substring(0, 8) + '...' : 'MISSING');
+  console.log('🎵 [ACR API] Access Secret:', accessSecret ? accessSecret.substring(0, 8) + '...' : 'MISSING');
 
   const endpoint = `https://${host}/v1/identify`;
   const method = 'POST';
@@ -38,7 +47,7 @@ export async function identifyByBuffer(audioBuffer: Buffer): Promise<ACRIdentify
   // use native fetch
   const form = new FormData();
   form.append('access_key', accessKey);
-  form.append('sample', new Blob([audioBuffer]), 'audio.wav');
+  form.append('sample', new Blob([new Uint8Array(audioBuffer)]), 'audio.wav');
   form.append('sample_bytes', String(audioBuffer.length));
   form.append('timestamp', String(timestamp));
   form.append('signature', signature);
@@ -52,12 +61,20 @@ export async function identifyByBuffer(audioBuffer: Buffer): Promise<ACRIdentify
 
   if (!response.ok) {
     const text = await response.text();
+    console.error(`🎵 [ACR API] HTTP Error: ${response.status} ${response.statusText}`);
+    console.error(`🎵 [ACR API] Response: ${text}`);
     throw new Error(`acrcloud identify failed: ${response.status} ${text}`);
   }
 
   const json: any = await response.json();
+  console.log('🎵 [ACR API] Full response from ACR Cloud:', JSON.stringify(json, null, 2));
+  
   const music = json?.metadata?.music?.[0];
-  if (!music) return null;
+  if (!music) {
+    console.log('🎵 [ACR API] No music found in response. Status:', json?.status);
+    console.log('🎵 [ACR API] Message:', json?.msg);
+    return null;
+  }
 
   const title: string | undefined = music.title;
   const artist: string | undefined = music.artists?.[0]?.name || music?.artist?.name;

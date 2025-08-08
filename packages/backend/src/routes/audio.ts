@@ -22,15 +22,41 @@ router.post('/analyze', [
     // try external recognition via acrcloud if env is present
     const wavBuffer = encodeWav(samples, sampleRate);
     let recognized = null;
+    
+    console.log('🎵 [ACR API] Starting song identification...');
+    console.log(`🎵 [ACR API] Audio buffer size: ${wavBuffer.length} bytes`);
+    console.log(`🎵 [ACR API] Sample rate: ${sampleRate}Hz`);
+    console.log(`🎵 [ACR API] Duration: ~${(samples.length / sampleRate).toFixed(2)} seconds`);
+    
+    const startTime = Date.now();
     try {
       recognized = await identifyByBuffer(wavBuffer);
+      const endTime = Date.now();
+      
+      if (recognized && recognized.title && recognized.artist) {
+        console.log('🎵 [ACR API] ✅ SUCCESS! Song recognized:');
+        console.log(`🎵 [ACR API] Title: "${recognized.title}"`);
+        console.log(`🎵 [ACR API] Artist: "${recognized.artist}"`);
+        console.log(`🎵 [ACR API] Album: "${recognized.album || 'Unknown'}"`);
+        console.log(`🎵 [ACR API] Duration: ${recognized.duration || 'Unknown'}`);
+        console.log(`🎵 [ACR API] Album Art: ${recognized.albumArt ? 'Available' : 'None'}`);
+        console.log(`🎵 [ACR API] Response time: ${endTime - startTime}ms`);
+      } else {
+        console.log('🎵 [ACR API] ❌ No match found');
+        console.log(`🎵 [ACR API] Response time: ${endTime - startTime}ms`);
+        console.log('🎵 [ACR API] Response data:', recognized);
+      }
     } catch (e) {
-      // keep errors quiet to allow fallback
-      console.warn('acrcloud identify failed, falling back to stub');
+      const endTime = Date.now();
+      console.error('🎵 [ACR API] ❌ ERROR occurred:');
+      console.error(`🎵 [ACR API] Error: ${(e as Error).message}`);
+      console.error(`🎵 [ACR API] Response time: ${endTime - startTime}ms`);
+      console.error('🎵 [ACR API] Full error:', e);
+      console.log('🎵 [ACR API] Falling back to mock data...');
     }
 
     if (recognized && recognized.title && recognized.artist) {
-      return res.json({
+      const apiResponse = {
         song: {
           title: recognized.title,
           artist: recognized.artist,
@@ -43,13 +69,24 @@ router.post('/analyze', [
         confidence: 0.9,
         sampleRate,
         analyzedFrames: Math.min(samples.length, 4096)
-      });
+      };
+      
+      console.log('🎵 [ACR API] 📤 Sending REAL song data to frontend:');
+      console.log(`🎵 [ACR API] Song: "${apiResponse.song.title}" by ${apiResponse.song.artist}`);
+      console.log('🎵 [ACR API] Source: API Detection (not mock data)');
+      
+      return res.json(apiResponse);
     }
 
     // fallback: deterministic mock for iter 2
+    console.log('🎵 [ACR API] 📤 API did not recognize song - sending MOCK data to frontend');
+    console.log('🎵 [ACR API] Mock Song: "Wonderwall" by Oasis');
+    console.log('🎵 [ACR API] Source: Mock/Fallback (not real detection)');
+    
     const energy = samples.slice(0, Math.min(samples.length, 4096)).reduce((acc, v) => acc + Math.abs(v), 0) / Math.min(samples.length, 4096);
     const confidence = Math.max(0.6, Math.min(0.98, 0.7 + (energy % 0.28)));
-    return res.json({
+    
+    const mockResponse = {
       song: {
         title: 'Wonderwall',
         artist: 'Oasis',
@@ -65,12 +102,14 @@ router.post('/analyze', [
           { name: 'F', fingering: '133211', fret: 1 }
         ],
         tabUrl: 'https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382',
-        source: 'API Detection'
+        source: 'Mock Data'
       },
       confidence,
       sampleRate,
       analyzedFrames: Math.min(samples.length, 4096)
-    });
+    };
+    
+    return res.json(mockResponse);
   } catch (error) {
     console.error('error analyzing audio:', error);
     return res.status(500).json({ message: 'server error' });

@@ -90,7 +90,7 @@ router.post('/', [
   body('chords.*.fingering').notEmpty().withMessage('chord fingering is required'),
   body('chords.*.fret').optional().isInt({ min: 0, max: 12 }).toInt(),
   body('tabUrl').optional().isURL().withMessage('tab url must be valid'),
-  body('source').optional().isIn(['Ultimate Guitar', 'Songsterr', 'Manual', 'API Detection'])
+  body('source').optional().isIn(['Ultimate Guitar', 'Songsterr', 'Manual', 'API Detection', 'Mock Data', 'Frontend Mock'])
 ], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
@@ -129,7 +129,7 @@ router.put('/:id', [
   body('albumArt').optional().isURL(),
   body('chords').optional().isArray(),
   body('tabUrl').optional().isURL(),
-  body('source').optional().isIn(['Ultimate Guitar', 'Songsterr', 'Manual', 'API Detection'])
+  body('source').optional().isIn(['Ultimate Guitar', 'Songsterr', 'Manual', 'API Detection', 'Mock Data', 'Frontend Mock'])
 ], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);

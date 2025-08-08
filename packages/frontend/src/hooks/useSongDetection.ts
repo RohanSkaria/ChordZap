@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { songApi, sessionApi, audioApi } from '../services/api.ts';
+import { songApi, sessionApi, audioApi } from '../services/api';
 
 interface DetectedSong {
   id?: string;
@@ -144,9 +144,23 @@ export function useSongDetection(): UseSongDetectionReturn {
       setIsDetecting(true);
       setError(null);
 
+      console.log('🎧 [FRONTEND] Starting audio detection...');
+      console.log(`🎧 [FRONTEND] Sending ${samples.length} samples at ${sampleRate}Hz to backend`);
+      
       // call backend audio analysis (acrcloud or local)
       const analysis = await audioApi.analyze(samples, sampleRate);
       const result = analysis.song;
+      
+      console.log('🎧 [FRONTEND] ✅ Received response from backend:');
+      console.log(`🎧 [FRONTEND] Song: "${result.title}" by ${result.artist}`);
+      console.log(`🎧 [FRONTEND] Source: ${result.source}`);
+      console.log(`🎧 [FRONTEND] Confidence: ${analysis.confidence}`);
+      
+      if (result.source === 'API Detection') {
+        console.log('🎧 [FRONTEND] 🎉 THIS IS REAL API DATA! ACR Cloud successfully identified the song!');
+      } else if (result.source === 'Mock Data') {
+        console.log('🎧 [FRONTEND] ℹ️  This is mock/fallback data - ACR API did not recognize the song');
+      }
 
       // ensure chords array exists for UI
       const chords = Array.isArray(result.chords) ? result.chords : [];
