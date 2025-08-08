@@ -116,4 +116,12 @@ export const healthApi = {
   }
 };
 
+// audio analysis api
+export const audioApi = {
+  analyze: async (samples: number[], sampleRate?: number) => {
+    const response = await api.post('/api/audio/analyze', { samples, sampleRate });
+    return response.data as { song: any; confidence: number; analyzedFrames: number; sampleRate: number };
+  }
+};
+
 export default api;

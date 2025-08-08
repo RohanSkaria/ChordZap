@@ -57,27 +57,36 @@ export function ListeningScreen() {
     }, 120);
 
     try {
-      // mock song data for iteration 1 demo
-      const mockSongData = {
-        title: "Wonderwall",
-        artist: "Oasis", 
-        album: "(What's the Story) Morning Glory?",
-        albumArt: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center",
-        duration: "4:18",
-        chords: [
-          { name: "Em7", fingering: "022030", fret: 0 },
-          { name: "G", fingering: "320003", fret: 3 },
-          { name: "D", fingering: "xx0232", fret: 2 },
-          { name: "C", fingering: "x32010", fret: 0 },
-          { name: "Am", fingering: "x02210", fret: 0 },
-          { name: "F", fingering: "133211", fret: 1 }
-        ],
-        tabUrl: "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382",
-        source: "Ultimate Guitar"
-      };
+      // prefer real mic detection when audio data is present
+      const audioData = audioCapture.getAudioBuffer();
+      let detectedSong = null as any;
+      if (audioData && audioData.length > 2048) {
+        // send a short slice to backend (about ~2-3s depending on buffer)
+        const slice = Array.from(audioData.slice(0, Math.min(audioData.length, 44100 * 3)));
+        detectedSong = await songDetection.detectFromAudio(slice, 44100);
+      }
 
-      // save song to database and add to session
-      const detectedSong = await songDetection.detectSong(mockSongData);
+      // fallback to mock if detection could not run
+      if (!detectedSong) {
+        const mockSongData = {
+          title: "Wonderwall",
+          artist: "Oasis", 
+          album: "(What's the Story) Morning Glory?",
+          albumArt: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center",
+          duration: "4:18",
+          chords: [
+            { name: "Em7", fingering: "022030", fret: 0 },
+            { name: "G", fingering: "320003", fret: 3 },
+            { name: "D", fingering: "xx0232", fret: 2 },
+            { name: "C", fingering: "x32010", fret: 0 },
+            { name: "Am", fingering: "x02210", fret: 0 },
+            { name: "F", fingering: "133211", fret: 1 }
+          ],
+          tabUrl: "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382",
+          source: "Ultimate Guitar"
+        };
+        detectedSong = await songDetection.detectSong(mockSongData);
+      }
       
       if (detectedSong) {
         clearInterval(interval);

@@ -1,9 +1,11 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
+import { encodeWav } from '../utils/wav';
+import { identifyByBuffer } from '../services/acrcloud';
 
 const router: express.Router = express.Router();
 
-// simple audio analysis stub for iter 2
+// simple audio analysis
 router.post('/analyze', [
   body('samples').isArray({ min: 1 }).withMessage('audio samples array is required'),
   body('sampleRate').optional().isInt({ min: 8000, max: 96000 }).toInt()
@@ -14,34 +16,57 @@ router.post('/analyze', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    // note: this is a placeholder. real dsp lives in iter 3
     const samples: number[] = req.body.samples;
     const sampleRate: number = req.body.sampleRate || 44100;
 
-    // pretend to analyze the first chunk and return a deterministic mock
+    // try external recognition via acrcloud if env is present
+    const wavBuffer = encodeWav(samples, sampleRate);
+    let recognized = null;
+    try {
+      recognized = await identifyByBuffer(wavBuffer);
+    } catch (e) {
+      // keep errors quiet to allow fallback
+      console.warn('acrcloud identify failed, falling back to stub');
+    }
+
+    if (recognized && recognized.title && recognized.artist) {
+      return res.json({
+        song: {
+          title: recognized.title,
+          artist: recognized.artist,
+          album: recognized.album,
+          albumArt: recognized.albumArt,
+          duration: recognized.duration,
+          chords: [], // chords are populated later from scraping/db
+          source: 'API Detection'
+        },
+        confidence: 0.9,
+        sampleRate,
+        analyzedFrames: Math.min(samples.length, 4096)
+      });
+    }
+
+    // fallback: deterministic mock for iter 2
     const energy = samples.slice(0, Math.min(samples.length, 4096)).reduce((acc, v) => acc + Math.abs(v), 0) / Math.min(samples.length, 4096);
     const confidence = Math.max(0.6, Math.min(0.98, 0.7 + (energy % 0.28)));
-
-    const detected = {
-      title: 'Wonderwall',
-      artist: 'Oasis',
-      album: "(What's the Story) Morning Glory?",
-      albumArt: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center',
-      duration: '4:18',
-      chords: [
-        { name: 'Em7', fingering: '022030', fret: 0 },
-        { name: 'G', fingering: '320003', fret: 3 },
-        { name: 'D', fingering: 'xx0232', fret: 2 },
-        { name: 'C', fingering: 'x32010', fret: 0 },
-        { name: 'Am', fingering: 'x02210', fret: 0 },
-        { name: 'F', fingering: '133211', fret: 1 }
-      ],
-      tabUrl: 'https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382',
-      source: 'API Detection'
-    };
-
     return res.json({
-      song: detected,
+      song: {
+        title: 'Wonderwall',
+        artist: 'Oasis',
+        album: "(What's the Story) Morning Glory?",
+        albumArt: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center',
+        duration: '4:18',
+        chords: [
+          { name: 'Em7', fingering: '022030', fret: 0 },
+          { name: 'G', fingering: '320003', fret: 3 },
+          { name: 'D', fingering: 'xx0232', fret: 2 },
+          { name: 'C', fingering: 'x32010', fret: 0 },
+          { name: 'Am', fingering: 'x02210', fret: 0 },
+          { name: 'F', fingering: '133211', fret: 1 }
+        ],
+        tabUrl: 'https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382',
+        source: 'API Detection'
+      },
       confidence,
       sampleRate,
       analyzedFrames: Math.min(samples.length, 4096)

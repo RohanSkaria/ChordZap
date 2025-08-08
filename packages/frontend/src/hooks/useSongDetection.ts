@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { songApi, sessionApi } from '../services/api.ts';
+import { songApi, sessionApi, audioApi } from '../services/api.ts';
 
 interface DetectedSong {
   id?: string;
@@ -25,6 +25,7 @@ interface UseSongDetectionReturn {
   startSession: () => Promise<void>;
   endSession: () => Promise<void>;
   detectSong: (mockSongData: DetectedSong) => Promise<DetectedSong | null>;
+  detectFromAudio: (samples: number[], sampleRate?: number) => Promise<DetectedSong | null>;
   clearError: () => void;
 }
 
@@ -133,6 +134,65 @@ export function useSongDetection(): UseSongDetectionReturn {
     }
   }, [currentSession]);
 
+  const detectFromAudio = useCallback(async (samples: number[], sampleRate?: number): Promise<DetectedSong | null> => {
+    if (!currentSession) {
+      setError('no active session - please start session first');
+      return null;
+    }
+
+    try {
+      setIsDetecting(true);
+      setError(null);
+
+      // call backend audio analysis (acrcloud or local)
+      const analysis = await audioApi.analyze(samples, sampleRate);
+      const result = analysis.song;
+
+      // ensure chords array exists for UI
+      const chords = Array.isArray(result.chords) ? result.chords : [];
+
+      // save or upsert song in db
+      const savedSong = await songApi.createSong({
+        title: result.title,
+        artist: result.artist,
+        album: result.album,
+        albumArt: result.albumArt,
+        duration: result.duration,
+        chords,
+        tabUrl: result.tabUrl,
+        source: result.source || 'API Detection'
+      });
+
+      await sessionApi.addDetectedSong(
+        currentSession.sessionId,
+        savedSong._id,
+        analysis.confidence || 0.85,
+        'microphone'
+      );
+
+      const songWithId: DetectedSong = {
+        id: savedSong._id,
+        title: savedSong.title,
+        artist: savedSong.artist,
+        album: savedSong.album,
+        albumArt: savedSong.albumArt,
+        duration: savedSong.duration,
+        chords: savedSong.chords,
+        tabUrl: savedSong.tabUrl,
+        source: savedSong.source
+      };
+
+      setDetectedSongs(prev => [songWithId, ...prev]);
+      return songWithId;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'failed to detect from audio');
+      console.error('audio detection error:', err);
+      return null;
+    } finally {
+      setIsDetecting(false);
+    }
+  }, [currentSession]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -145,6 +205,7 @@ export function useSongDetection(): UseSongDetectionReturn {
     startSession,
     endSession,
     detectSong,
+    detectFromAudio,
     clearError
   };
 }
