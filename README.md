@@ -2,7 +2,8 @@
 
 # Iter2:
 
-## Implemented: music detection based on real-time audio using ACRloud's music recognition API. 
+## Implemented: 
+- Music detection based on real-time audio using ACRloud's music recognition API. 
 - In this iteration, I focused on integrating the audio recognition api. This then has a fallback to the mock page until the scraper is implemented. Listen page now has a period of time to listen to a song, request from the api, and displays whether analysis was successful in the console. Switched to axios for form-data package for multipart requests.
 
 ## ToDo:
