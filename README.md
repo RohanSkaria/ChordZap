@@ -1,5 +1,23 @@
 # Monorepo for ChordZap
 
+# Iter2:
+
+## Implemented: music detection based on real-time audio using ACRloud's music recognition API. 
+- In this iteration, I focused on integrating the audio recognition api. This then has a fallback to the mock page until the scraper is implemented. Listen page now has a period of time to listen to a song, request from the api, and displays whether analysis was successful in the console. Switched to axios for form-data package for multipart requests.
+
+## ToDo:
+- Create tabscraping logic and test
+- Chord storage and segmentation in the database logic
+- UI logic for listening and get the api for retriving a song to work
+
+
+
+## Console api request
+<img width="1508" height="364" alt="Screenshot 2025-08-08 at 12 30 08 AM" src="https://github.com/user-attachments/assets/2a842561-8b67-45ac-ab55-030d346d3719" />
+
+
+
+# Iter1
 ## Implemented: 
 - Created a foundation for a shazam style chord view web application. Theres a fully fucnitonal backend and front end. The backend was made using Typescript and Express.js. It is also connected to a MongoDB with API endpoints. The schema includes, song models with chord information, artist details, and meta data. The front end is a react application that provides a UI with 4 main screens - shown below. This implementation includes custom hooks for audio capture, song detection, and tab search.
 
