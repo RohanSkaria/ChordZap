@@ -1,5 +1,5 @@
 import { BaseScraper, ScrapingResult, ScrapingOptions, TabData, TabCache, ScrapingLogger } from './BaseScraper';
-import { UltimateGuitarScraper } from './UltimateGuitarScraper';
+import { EChordsScraper } from './EChordsScraper';
 
 export interface ScraperInfo {
   name: string;
@@ -41,12 +41,12 @@ export class TabScrapingManager {
 
   private initializeScrapers(): void {
     // Initialize all available scrapers
-    const ultimateGuitar = new UltimateGuitarScraper();
-    this.scrapers.set('ultimate-guitar', ultimateGuitar);
+    const eChords = new EChordsScraper();
+    this.scrapers.set('e-chords', eChords);
     
    
-    this.scraperStats.set('ultimate-guitar', {
-      name: 'Ultimate Guitar',
+    this.scraperStats.set('e-chords', {
+      name: 'E-Chords',
       isActive: true,
       lastUsed: null,
       successRate: 1.0,
@@ -288,8 +288,8 @@ export class TabScrapingManager {
 
    
       if (a.source !== b.source) {
-        if (a.source === 'Ultimate Guitar') return -1;
-        if (b.source === 'Ultimate Guitar') return 1;
+        if (a.source === 'E-Chords') return -1;
+        if (b.source === 'E-Chords') return 1;
       }
 
     

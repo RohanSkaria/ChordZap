@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { encodeWav } from '../utils/wav';
 import { identifyByBuffer } from '../services/acrcloud';
-import { ultimateGuitarScraper } from '../services/tabScraper';
+import { eChordsScaper } from '../services/tabScraper';
 
 const router: express.Router = express.Router();
 
@@ -65,7 +65,7 @@ router.post('/analyze', [
       
       try {
         const searchQuery = `${recognized.title} ${recognized.artist}`;
-        const tabResults = await ultimateGuitarScraper.searchTabs(searchQuery, 5);
+        const tabResults = await eChordsScaper.searchTabs(searchQuery, 5);
         
         if (tabResults.success && tabResults.data && tabResults.data.length > 0) {
           // Take the first (best) result
@@ -129,7 +129,7 @@ router.post('/analyze', [
     
     try {
       console.log(`🎸 [AUTO-SCRAPE] Searching tabs for mock song: "Wonderwall" by Oasis`);
-      const tabResults = await ultimateGuitarScraper.searchTabs('Wonderwall Oasis', 1);
+      const tabResults = await eChordsScaper.searchTabs('Wonderwall Oasis', 1);
       
       if (tabResults.success && tabResults.data && tabResults.data.length > 0) {
         const bestTab = tabResults.data[0];

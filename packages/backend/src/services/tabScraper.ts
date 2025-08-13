@@ -38,8 +38,8 @@ export interface SearchResult {
   totalResults?: number;
 }
 
-class UltimateGuitarScraper {
-  private readonly baseUrl = 'https://www.ultimate-guitar.com';
+class EChordsScraper {
+  private readonly baseUrl = 'https://www.e-chords.com';
   private readonly userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
   
   private readonly basicChords: Record<string, string> = {
@@ -71,7 +71,7 @@ class UltimateGuitarScraper {
 
   async searchTabs(query: string, maxResults: number = 20): Promise<SearchResult> {
     try {
-      console.log(`🎸 [SCRAPER] Searching Ultimate Guitar for: ${query}`);
+      console.log(`🎸 [SCRAPER] Searching E-Chords for: ${query}`);
       
       // Try real scraping first, fallback to mock data if it fails
       try {
@@ -160,8 +160,8 @@ class UltimateGuitarScraper {
         chords,
         sections: this.generateSections(song.title, chords),
         tabContent: this.generateTabContent(song.title, song.artist, chords),
-        source: 'Ultimate Guitar',
-        sourceUrl: `${this.baseUrl}/tab/${song.artist.replace(/\s+/g, '-').toLowerCase()}/${song.title.replace(/\s+/g, '-').toLowerCase()}-chords-${100000 + index}`
+        source: 'E-Chords',
+        sourceUrl: `${this.baseUrl}/chords/${song.artist.replace(/\s+/g, '-').toLowerCase()}/${song.title.replace(/\s+/g, '-').toLowerCase()}`
       };
     });
   }
@@ -182,7 +182,7 @@ class UltimateGuitarScraper {
       sections: this.generateSections(title, chords),
       tabContent: this.generateTabContent(title, artist, chords),
       source: 'Ultimate Guitar',
-      sourceUrl: `${this.baseUrl}/tab/${artist.toLowerCase()}/${title.toLowerCase()}-chords-123456`
+      sourceUrl: `${this.baseUrl}/chords/${artist.toLowerCase()}/${title.toLowerCase()}`
     };
   }
 
@@ -289,7 +289,7 @@ ${chords.map(chord => `${chord.name}: ${chord.fingering}`).join('\n')}`;
   }
 
   private async performRealSearch(query: string, maxResults: number): Promise<TabData[]> {
-    const searchUrl = `${this.baseUrl}/search.php?search_type=title&value=${encodeURIComponent(query)}`;
+    const searchUrl = `${this.baseUrl}/search?query=${encodeURIComponent(query)}&type=song`;
     
     console.log(`🎸 [SCRAPER] Making request to: ${searchUrl}`);
     
@@ -370,7 +370,7 @@ ${chords.map(chord => `${chord.name}: ${chord.fingering}`).join('\n')}`;
           chords,
           sections: this.generateSections(title, chords),
           tabContent: this.generateTabContent(title, artist, chords),
-          source: 'Ultimate Guitar',
+          source: 'E-Chords',
           sourceUrl: tabUrl.startsWith('http') ? tabUrl : `${this.baseUrl}${tabUrl}`
         });
         
@@ -410,4 +410,4 @@ ${chords.map(chord => `${chord.name}: ${chord.fingering}`).join('\n')}`;
   }
 }
 
-export const ultimateGuitarScraper = new UltimateGuitarScraper();
+export const eChordsScaper = new EChordsScraper();

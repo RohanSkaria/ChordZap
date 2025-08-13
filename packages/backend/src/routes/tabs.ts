@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { query, param, validationResult } from 'express-validator';
-import { ultimateGuitarScraper } from '../services/tabScraper';
+import { eChordsScaper } from '../services/tabScraper';
 
 const router: express.Router = express.Router();
 
@@ -20,7 +20,7 @@ router.get('/search', [
 
     console.log(`🎸 [API] Tab search request: "${searchQuery}" (limit: ${limit})`);
 
-    const result = await ultimateGuitarScraper.searchTabs(searchQuery, limit);
+    const result = await eChordsScaper.searchTabs(searchQuery, limit);
 
     if (result.success) {
       console.log(`🎸 [API] Found ${result.data?.length || 0} tabs for "${searchQuery}"`);
@@ -59,7 +59,7 @@ router.get('/:tabId', [
     const tabId = req.params.tabId;
     console.log(`🎸 [API] Tab fetch request: ${tabId}`);
 
-    const tab = await ultimateGuitarScraper.getTabById(tabId);
+    const tab = await eChordsScaper.getTabById(tabId);
 
     if (tab) {
       console.log(`🎸 [API] Successfully fetched tab: "${tab.title}" by ${tab.artist}`);
@@ -101,7 +101,7 @@ router.post('/suggest', [
     const searchQuery = `${title || ''} ${artist || ''}`.trim();
     console.log(`🎸 [API] Tab suggestion request: "${searchQuery}"`);
 
-    const result = await ultimateGuitarScraper.searchTabs(searchQuery, 10);
+    const result = await eChordsScaper.searchTabs(searchQuery, 10);
 
     if (result.success) {
       // Filter results to match the song more closely
@@ -141,7 +141,7 @@ router.get('/health/check', async (req: Request, res: Response) => {
     console.log('🎸 [API] Scraper health check');
     
     // Test with a simple search
-    const testResult = await ultimateGuitarScraper.searchTabs('test', 1);
+    const testResult = await eChordsScaper.searchTabs('test', 1);
     
     return res.json({
       success: true,
