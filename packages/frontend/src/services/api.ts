@@ -136,7 +136,66 @@ export const audioApi = {
     );
     
     console.log('🌐 [NETWORK] API response received');
-    return response.data as { song: any; confidence: number; analyzedFrames: number; sampleRate: number };
+    return response.data as { song: any; confidence: number; analyzedFrames: number; sampleRate: number; hasTabData?: boolean };
+  }
+};
+
+// tab api functions
+export const tabApi = {
+  // search for tabs
+  searchTabs: async (query: string, limit?: number) => {
+    console.log('🌐 [NETWORK] Making API request to /api/tabs/search');
+    console.log(`🌐 [NETWORK] Searching for: "${query}"`);
+    
+    const response = await api.get('/api/tabs/search', {
+      params: { q: query, limit },
+      headers: {
+        'X-ChordZap-Action': 'Tab-Search',
+        'X-ChordZap-Query': query,
+      }
+    });
+    
+    console.log('🌐 [NETWORK] Tab search response received');
+    return response.data as { success: boolean; query: string; totalResults: number; results: any[] };
+  },
+
+  // get specific tab by id
+  getTab: async (tabId: string) => {
+    console.log('🌐 [NETWORK] Making API request to /api/tabs/:id');
+    console.log(`🌐 [NETWORK] Fetching tab: ${tabId}`);
+    
+    const response = await api.get(`/api/tabs/${tabId}`, {
+      headers: {
+        'X-ChordZap-Action': 'Tab-Fetch',
+        'X-ChordZap-TabId': tabId,
+      }
+    });
+    
+    console.log('🌐 [NETWORK] Tab fetch response received');
+    return response.data as { success: boolean; tab: any };
+  },
+
+  // get tab suggestions for a song
+  suggestTabs: async (title?: string, artist?: string) => {
+    console.log('🌐 [NETWORK] Making API request to /api/tabs/suggest');
+    console.log(`🌐 [NETWORK] Getting suggestions for: "${title}" by ${artist}`);
+    
+    const response = await api.post('/api/tabs/suggest', { title, artist }, {
+      headers: {
+        'X-ChordZap-Action': 'Tab-Suggest',
+        'X-ChordZap-Title': title || '',
+        'X-ChordZap-Artist': artist || '',
+      }
+    });
+    
+    console.log('🌐 [NETWORK] Tab suggestions response received');
+    return response.data as { success: boolean; query: string; suggestions: any[] };
+  },
+
+  // health check for scraper
+  healthCheck: async () => {
+    const response = await api.get('/api/tabs/health/check');
+    return response.data as { success: boolean; scraperStatus: string; timestamp: string };
   }
 };
 

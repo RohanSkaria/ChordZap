@@ -25,8 +25,10 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { cn } from '../ui/utils';
-import { useTabSearch, useSearchSuggestions } from '../../hooks/useTabSearch';
+import { useBackendTabSearch } from '../../hooks/useBackendTabSearch';
+import { useSearchSuggestions } from '../../hooks/useTabSearch';
 import { TabData } from '../../scraping/BaseScraper';
+import { tabApi } from '../../services/api';
 
 interface TabSearchComponentProps {
   className?: string;
@@ -47,11 +49,7 @@ export const TabSearchComponent: React.FC<TabSearchComponentProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [showScraperSettings, setShowScraperSettings] = useState(false);
 
-  const tabSearch = useTabSearch({
-    maxResults: 50,
-    instrumentType: 'guitar',
-    timeout: 30000
-  });
+  const tabSearch = useBackendTabSearch();
 
   const suggestions = useSearchSuggestions();
 
@@ -63,12 +61,12 @@ export const TabSearchComponent: React.FC<TabSearchComponentProps> = ({
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    await tabSearch.search(searchQuery);
+    await tabSearch.searchTabs(searchQuery, 50);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     setSearchQuery(suggestion);
-    tabSearch.search(suggestion);
+    tabSearch.searchTabs(suggestion, 50);
   };
 
   const getDifficultyColor = (difficulty?: string) => {
@@ -174,31 +172,9 @@ export const TabSearchComponent: React.FC<TabSearchComponentProps> = ({
 
           {/* Controls */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="rounded-2xl border-2"
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowScraperSettings(!showScraperSettings)}
-                className="rounded-2xl border-2"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Sources
-              </Button>
-            </div>
-            
             {tabSearch.state.hasSearched && (
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>{tabSearch.state.totalResults} results</span>
-                <span>in {tabSearch.state.searchTime}ms</span>
+                <span>{tabSearch.state.totalResults} results found</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -212,143 +188,6 @@ export const TabSearchComponent: React.FC<TabSearchComponentProps> = ({
         </CardContent>
       </Card>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <Card className="rounded-3xl indie-shadow">
-          <CardHeader>
-            <CardTitle className="text-lg">Search Filters</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Minimum Rating</Label>
-                <Select
-                  value={String(tabSearch.filters.minRating || 0)}
-                  onValueChange={(value) => tabSearch.setFilters({ minRating: Number(value) })}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Any rating</SelectItem>
-                    <SelectItem value="3">3+ stars</SelectItem>
-                    <SelectItem value="4">4+ stars</SelectItem>
-                    <SelectItem value="4.5">4.5+ stars</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Max Difficulty</Label>
-                <Select
-                  value={tabSearch.filters.maxDifficulty || 'advanced'}
-                  onValueChange={(value: any) => tabSearch.setFilters({ maxDifficulty: value })}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner only</SelectItem>
-                    <SelectItem value="intermediate">Up to Intermediate</SelectItem>
-                    <SelectItem value="advanced">All levels</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Sort By</Label>
-                <Select
-                  value={tabSearch.filters.sortBy || 'rating'}
-                  onValueChange={(value: any) => tabSearch.setFilters({ sortBy: value })}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rating">Rating</SelectItem>
-                    <SelectItem value="title">Title</SelectItem>
-                    <SelectItem value="difficulty">Difficulty</SelectItem>
-                    <SelectItem value="source">Source</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Order</Label>
-                <Select
-                  value={tabSearch.filters.sortOrder || 'desc'}
-                  onValueChange={(value: any) => tabSearch.setFilters({ sortOrder: value })}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="desc">Descending</SelectItem>
-                    <SelectItem value="asc">Ascending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="require-chords"
-                  checked={tabSearch.filters.requireChords || false}
-                  onCheckedChange={(checked) => tabSearch.setFilters({ requireChords: checked })}
-                />
-                <Label htmlFor="require-chords">Must have chords</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="require-tabs"
-                  checked={tabSearch.filters.requireTabs || false}
-                  onCheckedChange={(checked) => tabSearch.setFilters({ requireTabs: checked })}
-                />
-                <Label htmlFor="require-tabs">Must have tabs</Label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Scraper Settings */}
-      {showScraperSettings && (
-        <Card className="rounded-3xl indie-shadow">
-          <CardHeader>
-            <CardTitle className="text-lg">Tab Sources</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {tabSearch.scraperInfo.map((scraper) => (
-                <div key={scraper.name} className="flex items-center justify-between p-4 border rounded-xl">
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={scraper.isActive}
-                      onCheckedChange={(checked) => tabSearch.setScraperActive(scraper.name.toLowerCase().replace(' ', '-'), checked)}
-                    />
-                    <div>
-                      <div className="font-medium">{scraper.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Success rate: {Math.round(scraper.successRate * 100)}% • 
-                        Avg response: {Math.round(scraper.averageResponseTime)}ms
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={scraper.rateLimitStatus === 'ok' ? 'default' : 'destructive'}
-                      className="rounded-xl"
-                    >
-                      {scraper.rateLimitStatus}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Loading State */}
       {tabSearch.state.isSearching && (
@@ -383,18 +222,18 @@ export const TabSearchComponent: React.FC<TabSearchComponentProps> = ({
       {tabSearch.state.results.length > 0 && (
         <div className="space-y-4">
           {tabSearch.state.results.map((tab, index) => (
-            <Card key={tab.id} className="rounded-3xl indie-shadow hover:indie-shadow-lg transition-all duration-300 cursor-pointer" onClick={() => onTabSelect?.(tab)}>
+            <Card key={tab.id} className="rounded-3xl indie-shadow hover:indie-shadow-lg transition-all duration-300 cursor-pointer" onClick={() => onTabSelect?.(tab as any)}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-semibold">{tab.song.title}</h3>
+                      <h3 className="text-xl font-semibold">{tab.title}</h3>
                       <Badge variant="outline" className="text-xs px-2 py-1 rounded-lg">
                         {tab.source}
                       </Badge>
                     </div>
                     
-                    <p className="text-lg text-muted-foreground mb-3">by {tab.song.artist}</p>
+                    <p className="text-lg text-muted-foreground mb-3">by {tab.artist}</p>
                     
                     <div className="flex items-center gap-4 mb-4">
                       {renderStarRating(tab.rating)}
@@ -448,7 +287,7 @@ export const TabSearchComponent: React.FC<TabSearchComponentProps> = ({
                       className="rounded-xl"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onTabSelect?.(tab);
+                        onTabSelect?.(tab as any);
                       }}
                     >
                       <Music className="w-4 h-4 mr-2" />
@@ -472,8 +311,8 @@ export const TabSearchComponent: React.FC<TabSearchComponentProps> = ({
               Try searching with different keywords or check your filters
             </p>
             <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={() => setShowFilters(true)}>
-                Adjust Filters
+              <Button onClick={() => tabSearch.searchTabs('wonderwall', 10)}>
+                Try "Wonderwall"
               </Button>
               <Button onClick={suggestions.generateFromHistory}>
                 Try Popular Songs
