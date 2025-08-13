@@ -7,6 +7,7 @@ import { connectDB } from './config/database';
 import songsRouter from './routes/songs';
 import sessionsRouter from './routes/sessions';
 import audioRouter from './routes/audio';
+import tabsRouter from './routes/tabs';
 
 dotenv.config();
 
@@ -47,6 +48,8 @@ app.get('/api', (req, res) => {
     endpoints: {
       songs: '/api/songs',
       sessions: '/api/sessions',
+      audio: '/api/audio',
+      tabs: '/api/tabs',
       health: '/health'
     }
   });
@@ -56,6 +59,7 @@ app.get('/api', (req, res) => {
 app.use('/api/songs', songsRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/audio', audioRouter);
+app.use('/api/tabs', tabsRouter);
 
 // error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
