@@ -98,7 +98,7 @@ const TabSchema = new Schema<ITab>({
   source: {
     type: String,
     required: true,
-    enum: ['Ultimate Guitar', 'Songsterr', 'ChordPro', 'Manual', 'Other']
+    enum: ['Ultimate Guitar', 'Songsterr', 'ChordPro', 'Manual', 'GuitarTabs.cc', 'Other']
   },
   sourceUrl: {
     type: String,
