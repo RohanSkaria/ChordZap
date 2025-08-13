@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { encodeWav } from '../utils/wav';
 import { identifyByBuffer } from '../services/acrcloud';
+import { ultimateGuitarScraper } from '../services/tabScraper';
 
 const router: express.Router = express.Router();
 
@@ -56,6 +57,35 @@ router.post('/analyze', [
     }
 
     if (recognized && recognized.title && recognized.artist) {
+      // Search for tabs for the recognized song
+      console.log(`🎸 [AUTO-SCRAPE] Searching tabs for detected song: "${recognized.title}" by ${recognized.artist}`);
+      
+      let chords: any[] = [];
+      let tabUrl: string | undefined = undefined;
+      
+      try {
+        const searchQuery = `${recognized.title} ${recognized.artist}`;
+        const tabResults = await ultimateGuitarScraper.searchTabs(searchQuery, 5);
+        
+        if (tabResults.success && tabResults.data && tabResults.data.length > 0) {
+          // Take the first (best) result
+          const bestTab = tabResults.data[0];
+          chords = bestTab.chords.map(chord => ({
+            name: chord.name,
+            fingering: chord.fingering,
+            fret: chord.fret || 0
+          }));
+          tabUrl = bestTab.sourceUrl;
+          
+          console.log(`🎸 [AUTO-SCRAPE] ✅ Found ${chords.length} chords for "${recognized.title}"`);
+          console.log(`🎸 [AUTO-SCRAPE] Tab URL: ${tabUrl}`);
+        } else {
+          console.log(`🎸 [AUTO-SCRAPE] ❌ No tabs found for "${recognized.title}"`);
+        }
+      } catch (tabError) {
+        console.error(`🎸 [AUTO-SCRAPE] Error searching tabs:`, tabError);
+      }
+
       const apiResponse = {
         song: {
           title: recognized.title,
@@ -63,16 +93,19 @@ router.post('/analyze', [
           album: recognized.album,
           albumArt: recognized.albumArt,
           duration: recognized.duration,
-          chords: [], // chords are populated later from scraping/db
+          chords: chords,
+          tabUrl: tabUrl,
           source: 'API Detection'
         },
         confidence: 0.9,
         sampleRate,
-        analyzedFrames: Math.min(samples.length, 4096)
+        analyzedFrames: Math.min(samples.length, 4096),
+        hasTabData: chords.length > 0
       };
       
       console.log('🎵 [ACR API] 📤 Sending REAL song data to frontend:');
       console.log(`🎵 [ACR API] Song: "${apiResponse.song.title}" by ${apiResponse.song.artist}`);
+      console.log(`🎵 [ACR API] Chords found: ${chords.length > 0 ? 'Yes' : 'No'}`);
       console.log('🎵 [ACR API] Source: API Detection (not mock data)');
       
       return res.json(apiResponse);
@@ -82,6 +115,35 @@ router.post('/analyze', [
     console.log('🎵 [ACR API] 📤 API did not recognize song - sending MOCK data to frontend');
     console.log('🎵 [ACR API] Mock Song: "Wonderwall" by Oasis');
     console.log('🎵 [ACR API] Source: Mock/Fallback (not real detection)');
+    
+    // Try to get real tab data for Wonderwall as well
+    let mockChords = [
+      { name: 'Em7', fingering: '022030', fret: 0 },
+      { name: 'G', fingering: '320003', fret: 3 },
+      { name: 'D', fingering: 'xx0232', fret: 2 },
+      { name: 'C', fingering: 'x32010', fret: 0 },
+      { name: 'Am', fingering: 'x02210', fret: 0 },
+      { name: 'F', fingering: '133211', fret: 1 }
+    ];
+    let mockTabUrl = 'https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382';
+    
+    try {
+      console.log(`🎸 [AUTO-SCRAPE] Searching tabs for mock song: "Wonderwall" by Oasis`);
+      const tabResults = await ultimateGuitarScraper.searchTabs('Wonderwall Oasis', 1);
+      
+      if (tabResults.success && tabResults.data && tabResults.data.length > 0) {
+        const bestTab = tabResults.data[0];
+        mockChords = bestTab.chords.map(chord => ({
+          name: chord.name,
+          fingering: chord.fingering,
+          fret: chord.fret || 0
+        }));
+        mockTabUrl = bestTab.sourceUrl;
+        console.log(`🎸 [AUTO-SCRAPE] ✅ Updated mock data with scraped chords`);
+      }
+    } catch (tabError) {
+      console.log(`🎸 [AUTO-SCRAPE] Using fallback mock data for Wonderwall`);
+    }
     
     const energy = samples.slice(0, Math.min(samples.length, 4096)).reduce((acc, v) => acc + Math.abs(v), 0) / Math.min(samples.length, 4096);
     const confidence = Math.max(0.6, Math.min(0.98, 0.7 + (energy % 0.28)));
@@ -93,20 +155,14 @@ router.post('/analyze', [
         album: "(What's the Story) Morning Glory?",
         albumArt: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center',
         duration: '4:18',
-        chords: [
-          { name: 'Em7', fingering: '022030', fret: 0 },
-          { name: 'G', fingering: '320003', fret: 3 },
-          { name: 'D', fingering: 'xx0232', fret: 2 },
-          { name: 'C', fingering: 'x32010', fret: 0 },
-          { name: 'Am', fingering: 'x02210', fret: 0 },
-          { name: 'F', fingering: '133211', fret: 1 }
-        ],
-        tabUrl: 'https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-64382',
+        chords: mockChords,
+        tabUrl: mockTabUrl,
         source: 'Mock Data'
       },
       confidence,
       sampleRate,
-      analyzedFrames: Math.min(samples.length, 4096)
+      analyzedFrames: Math.min(samples.length, 4096),
+      hasTabData: true
     };
     
     return res.json(mockResponse);
