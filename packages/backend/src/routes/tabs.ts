@@ -135,6 +135,66 @@ router.post('/suggest', [
   }
 });
 
+// Get tab by song info with fallback to Wonderwall
+router.get('/by-song/:title/:artist', [
+  param('title').notEmpty().withMessage('Song title is required'),
+  param('artist').notEmpty().withMessage('Artist is required')
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const title = decodeURIComponent(req.params.title);
+    const artist = decodeURIComponent(req.params.artist);
+    
+    console.log(`🎸 [API] Tab lookup by song: "${title}" by ${artist}`);
+
+    // First try to find the exact song
+    let tab = await eChordsScaper.getTabByTitleArtist(title, artist);
+
+    if (!tab) {
+      console.log(`🎸 [API] Tab not found for "${title}" by ${artist}, trying fallback to Wonderwall`);
+      
+      // Fallback to Wonderwall if the song is not found
+      tab = await eChordsScaper.getTabByTitleArtist('Wonderwall', 'Oasis');
+      
+      if (!tab) {
+        console.log(`🎸 [API] Wonderwall fallback also failed, searching database`);
+        
+        // If still no tab, try a broader search in the database
+        const searchResult = await eChordsScaper.searchTabs('Wonderwall Oasis', 1);
+        if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
+          tab = searchResult.data[0];
+        }
+      }
+    }
+
+    if (tab) {
+      console.log(`🎸 [API] Successfully found tab: "${tab.title}" by ${tab.artist}`);
+      return res.json({
+        success: true,
+        tab,
+        isFallback: (tab.title.toLowerCase() === 'wonderwall' && tab.artist.toLowerCase() === 'oasis' && 
+                    !(title.toLowerCase() === 'wonderwall' && artist.toLowerCase() === 'oasis'))
+      });
+    } else {
+      console.log(`🎸 [API] No tab found even with fallback`);
+      return res.status(404).json({
+        success: false,
+        error: 'No tab data available'
+      });
+    }
+  } catch (error) {
+    console.error('🎸 [API] Tab lookup error:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error during tab lookup' 
+    });
+  }
+});
+
 // Health check for scraper service
 router.get('/health/check', async (req: Request, res: Response) => {
   try {

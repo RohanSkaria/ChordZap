@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { Song } from '../models/Song';
 import { body, validationResult, param, query } from 'express-validator';
+import { seedPopularSongs } from '../scripts/seedPopularSongs';
+import { guitarTabsScraper } from '../services/guitarTabsScraper';
 
 const router: express.Router = express.Router();
 
@@ -56,6 +58,55 @@ router.get('/', [
   }
 });
 
+// get popular songs (most detected) - must be before /:id route
+router.get('/popular', [
+  query('limit').optional().isInt({ min: 1, max: 50 }).toInt()
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const limit = Number(req.query.limit) || 10;
+    
+    const popularSongs = await Song.find({})
+      .sort({ detectionCount: -1, lastDetected: -1 })
+      .limit(limit)
+      .lean();
+
+    return res.json({
+      songs: popularSongs,
+      count: popularSongs.length
+    });
+  } catch (error) {
+    console.error('error fetching popular songs:', error);
+    return res.status(500).json({ message: 'server error' });
+  }
+});
+
+// seed database with popular songs - must be before /:id route
+router.post('/seed', async (req: Request, res: Response) => {
+  try {
+    console.log('🌱 [API] Starting database seeding...');
+    await seedPopularSongs();
+    
+    // Get count of songs after seeding
+    const songCount = await Song.countDocuments();
+    
+    return res.json({
+      message: 'Database seeded successfully with popular songs',
+      totalSongs: songCount,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('🌱 [API] Seeding error:', error);
+    return res.status(500).json({ 
+      message: 'Failed to seed database',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 router.get('/:id', [
   param('id').isMongoId().withMessage('invalid song id')
@@ -74,6 +125,99 @@ router.get('/:id', [
     return res.json(song);
   } catch (error) {
     console.error('error fetching song:', error);
+    return res.status(500).json({ message: 'server error' });
+  }
+});
+
+// get full tab data for a song with scraping
+router.get('/:id/tab-data', [
+  param('id').isMongoId().withMessage('invalid song id')
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const song = await Song.findById(req.params.id);
+    if (!song) {
+      return res.status(404).json({ message: 'song not found' });
+    }
+
+    console.log(`🎸 [API] Scraping tab data for: "${song.title}" by ${song.artist}`);
+
+    // Try to scrape tab data
+    let tabData = null;
+    
+    if (song.tabUrl) {
+      try {
+        console.log(`🎸 [API] Using existing tab URL: ${song.tabUrl}`);
+        tabData = await guitarTabsScraper.scrapeTabPage(song.tabUrl);
+      } catch (scrapeError) {
+        console.warn(`🎸 [API] Error scraping existing URL:`, scrapeError);
+      }
+    }
+
+    // If no existing URL or scraping failed, try URL generation method
+    if (!tabData) {
+      try {
+        console.log(`🎸 [API] Trying URL generation for: "${song.title}" by ${song.artist}`);
+        tabData = await guitarTabsScraper.findSongByGeneration(song.title, song.artist);
+        
+        if (tabData) {
+          console.log(`🎸 [API] Found tab data using URL generation`);
+        }
+      } catch (generationError) {
+        console.warn(`🎸 [API] Error with URL generation:`, generationError);
+      }
+    }
+
+    // If URL generation failed, try search as fallback
+    if (!tabData) {
+      try {
+        console.log(`🎸 [API] Fallback: Searching for tabs for: "${song.title}" by ${song.artist}`);
+        const searchResults = await guitarTabsScraper.searchTabs(`${song.title} ${song.artist}`, 1);
+        
+        if (searchResults.success && searchResults.data && searchResults.data.length > 0) {
+          tabData = searchResults.data[0];
+          console.log(`🎸 [API] Found tab data from search`);
+        }
+      } catch (searchError) {
+        console.warn(`🎸 [API] Error searching for tabs:`, searchError);
+      }
+    }
+
+    if (tabData) {
+      return res.json({
+        song: song,
+        tabData: tabData,
+        success: true
+      });
+    } else {
+      // Return song with basic info if no tab data found
+      return res.json({
+        song: song,
+        tabData: {
+          id: song._id,
+          title: song.title,
+          artist: song.artist,
+          album: song.album,
+          chords: song.chords,
+          sections: [{
+            name: 'Main',
+            content: `Chords for ${song.title} by ${song.artist}`,
+            chords: song.chords
+          }],
+          tabContent: `No detailed tab content available for ${song.title}`,
+          source: song.source || 'Database',
+          sourceUrl: song.tabUrl || ''
+        },
+        success: true,
+        fallback: true
+      });
+    }
+  } catch (error) {
+    console.error('error fetching tab data:', error);
     return res.status(500).json({ message: 'server error' });
   }
 });

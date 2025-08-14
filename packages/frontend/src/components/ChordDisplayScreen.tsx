@@ -6,9 +6,10 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
-import { ArrowLeft, Download, Share, Play, Music, Star, Guitar, Hash, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Share, Play, Music, Star, Guitar, Hash, Loader2, AlertCircle, Search } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { tabApi } from '../services/api';
+import { tabApi, songApi } from '../services/api';
+import { SongSearchComponent } from './search/SongSearchComponent';
 import React from 'react';
 
 interface TabData {
@@ -51,8 +52,10 @@ export function ChordDisplayScreen() {
   const [tabData, setTabData] = useState<TabData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showTabs, setShowTabs] = useState(false);
   const [selectedChord, setSelectedChord] = useState(0);
+  const [showTabs, setShowTabs] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [popularSongs, setPopularSongs] = useState<any[]>([]);
 
   // Defensive check for chord data
   const hasChords = tabData?.chords && tabData.chords.length > 0;
@@ -61,41 +64,45 @@ export function ChordDisplayScreen() {
   // Fetch tab data from API
   useEffect(() => {
     const fetchTabData = async () => {
-      if (!songId) {
-        // Try to get data from navigation state as fallback
-        const locationData = location.state;
-        if (locationData && locationData.id) {
-          try {
-            setIsLoading(true);
-            setError(null);
-            const response = await tabApi.getTab(locationData.id);
-            if (response.success && response.tab) {
-              setTabData(response.tab);
-            } else {
-              setError('Failed to load tab data');
-            }
-          } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to load tab data');
-          } finally {
-            setIsLoading(false);
-          }
-        } else {
-          setError('No song ID or data provided');
-          setIsLoading(false);
-        }
-        return;
-      }
-
       try {
         setIsLoading(true);
         setError(null);
-        const response = await tabApi.getTab(songId);
+
+        let title = 'Unknown Song';
+        let artist = 'Unknown Artist';
+
+        // Try to get song info from navigation state first
+        const locationData = location.state;
+        if (locationData && locationData.title && locationData.artist) {
+          title = locationData.title;
+          artist = locationData.artist;
+          console.log(`🎵 [CHORD DISPLAY] Using song from navigation: "${title}" by ${artist}`);
+        } else if (songId) {
+          console.log(`🎵 [CHORD DISPLAY] Song ID provided but no navigation data, falling back to Wonderwall`);
+          title = 'Wonderwall';
+          artist = 'Oasis';
+        } else {
+          console.log(`🎵 [CHORD DISPLAY] No song info provided, falling back to Wonderwall`);
+          title = 'Wonderwall';
+          artist = 'Oasis';
+        }
+
+        // Use the new API to get tab by song title and artist (with Wonderwall fallback)
+        const response = await tabApi.getTabBySong(title, artist);
+        
         if (response.success && response.tab) {
           setTabData(response.tab);
+          
+          if (response.isFallback) {
+            console.log(`🎵 [CHORD DISPLAY] Using Wonderwall fallback data instead of "${title}" by ${artist}`);
+          } else {
+            console.log(`🎵 [CHORD DISPLAY] Successfully loaded tab for "${title}" by ${artist}`);
+          }
         } else {
-          setError('Tab not found');
+          setError('No tab data available');
         }
       } catch (err) {
+        console.error('🎵 [CHORD DISPLAY] Error loading tab data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load tab data');
       } finally {
         setIsLoading(false);
@@ -105,27 +112,151 @@ export function ChordDisplayScreen() {
     fetchTabData();
   }, [songId, location.state]);
 
+  // Load popular songs for quick access
+  useEffect(() => {
+    const loadPopularSongs = async () => {
+      try {
+        const response = await songApi.getPopularSongs(5);
+        setPopularSongs(response.songs || []);
+      } catch (error) {
+        console.error('Failed to load popular songs:', error);
+      }
+    };
+
+    loadPopularSongs();
+  }, []);
+
+  // Handle song selection from search
+  const handleSongSelect = async (song: any) => {
+    console.log(`🎵 [CHORD DISPLAY] Song selected: "${song.title}" by ${song.artist}`);
+    
+    setIsLoading(true);
+    setShowSearch(false);
+    setError(null);
+
+    try {
+      console.log(`🎸 [CHORD DISPLAY] Fetching full tab data for song ID: ${song._id}`);
+      
+      // Get full tab data with scraping
+      const tabResponse = await songApi.getTabData(song._id);
+      
+      if (tabResponse.success && tabResponse.tabData) {
+        const scrapedData = tabResponse.tabData;
+        
+        // Convert scraped tab data to TabData format
+        const convertedTabData: TabData = {
+          id: song._id,
+          title: scrapedData.title || song.title,
+          artist: scrapedData.artist || song.artist,
+          album: scrapedData.album || song.album,
+          rating: scrapedData.rating || 4.0,
+          difficulty: scrapedData.difficulty || 'intermediate',
+          tuning: scrapedData.tuning || 'Standard (E A D G B E)',
+          capo: scrapedData.capo || 0,
+          type: scrapedData.type || 'chords',
+          chords: scrapedData.chords || song.chords || [],
+          sections: scrapedData.sections || [{
+            name: 'Main',
+            content: scrapedData.tabContent || `Chords for ${song.title} by ${song.artist}`,
+            chords: scrapedData.chords || song.chords || []
+          }],
+          tabContent: scrapedData.tabContent || `Chords for ${song.title} by ${song.artist}`,
+          source: scrapedData.source || song.source || 'Database',
+          sourceUrl: scrapedData.sourceUrl || song.tabUrl || ''
+        };
+
+        setTabData(convertedTabData);
+        
+        if (tabResponse.fallback) {
+          console.log(`🎸 [CHORD DISPLAY] ⚠️ Using fallback data for "${song.title}"`);
+        } else {
+          console.log(`🎸 [CHORD DISPLAY] ✅ Successfully loaded tab data for "${song.title}"`);
+        }
+      } else {
+        throw new Error('Failed to load tab data');
+      }
+    } catch (error) {
+      console.error(`🎸 [CHORD DISPLAY] Error loading tab data:`, error);
+      setError('Failed to load detailed tab information');
+      
+      // Fallback to basic song data
+      const basicTabData: TabData = {
+        id: song._id,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        rating: 4.0,
+        difficulty: 'intermediate',
+        tuning: 'Standard (E A D G B E)',
+        capo: 0,
+        type: 'chords',
+        chords: song.chords || [],
+        sections: [{
+          name: 'Main',
+          content: `Basic chords for ${song.title} by ${song.artist}`,
+          chords: song.chords || []
+        }],
+        tabContent: `Basic chords for ${song.title} by ${song.artist}`,
+        source: song.source || 'Database',
+        sourceUrl: song.tabUrl || ''
+      };
+      
+      setTabData(basicTabData);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Share current URL to clipboard
+  const handleShareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      // You could add a toast notification here if you have one
+      console.log('URL copied to clipboard');
+      alert('URL copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
+      alert('Failed to copy URL to clipboard');
+    }
+  };
+
   // generates chord diagrams from fingering patterns
   const getChordDiagram = (fingering: string, chordName: string) => {
     const strings = 6;
     const frets = 4;
     const positions = fingering.split('').map(pos => pos === 'x' ? null : parseInt(pos));
-    const stringSpacing = 20;
-    const fretHeight = 32;
     
     return (
-      <div className="bg-white border-2 border-gray-200 rounded-2xl p-4 w-[160px] indie-shadow">
-        <div className="text-center font-bold mb-3 text-black text-base">{chordName}</div>
-        <div className="relative mx-auto" style={{ width: `${(strings - 1) * stringSpacing + 4}px`, height: `${frets * fretHeight + 20}px` }}>
+      <div className="bg-white border border-gray-200 rounded-lg p-4 w-[140px] shadow-sm hover:shadow-md transition-shadow">
+        <div className="text-center font-semibold mb-2 text-gray-800 text-sm">{chordName}</div>
+        
+        {/* X's and O's below the chord label */}
+        <div className="flex justify-center mb-4" style={{ width: '80px', margin: '0 auto' }}>
+          {positions.map((position, string) => (
+            <div 
+              key={`indicator-${string}`} 
+              className="text-xs font-bold"
+              style={{ 
+                width: '14px',
+                textAlign: 'center',
+                color: position === null ? '#dc2626' : position === 0 ? '#16a34a' : 'transparent'
+              }}
+            >
+              {position === null ? '×' : position === 0 ? 'O' : ''}
+            </div>
+          ))}
+        </div>
+        
+        <div className="relative mx-auto" style={{ width: '80px', height: '100px' }}>
           
           {/* Fret lines */}
           {Array.from({ length: frets + 1 }).map((_, fret) => (
             <div 
               key={`fret-${fret}`} 
-              className="absolute border-t-2 border-black w-full"
+              className="absolute border-t border-gray-300 w-full"
               style={{ 
-                top: `${fret * fretHeight}px`,
-                borderTopWidth: fret === 0 ? '3px' : '2px'
+                top: `${fret * 25}px`,
+                borderTopWidth: fret === 0 ? '2px' : '1px'
               }}
             />
           ))}
@@ -134,56 +265,33 @@ export function ChordDisplayScreen() {
           {Array.from({ length: strings }).map((_, string) => (
             <div 
               key={`string-${string}`}
-              className="absolute border-l-2 border-gray-600 h-full"
+              className="absolute border-l border-gray-300 h-full"
               style={{ 
-                left: `${string * stringSpacing}px`,
+                left: `${string * 14}px`,
                 top: '0px',
-                height: `${frets * fretHeight}px`
+                height: '100px'
               }}
             />
           ))}
           
-          {/* Finger positions and markers */}
+          {/* Finger positions - only dots on frets, no X's or O's above */}
           {positions.map((position, string) => {
-            if (position === null) {
-              // X marker for muted strings
-              return (
-                <div
-                  key={`muted-${string}`}
-                  className="absolute text-red-500 font-bold text-lg"
-                  style={{
-                    left: `${string * stringSpacing - 6}px`,
-                    top: '-24px'
-                  }}
-                >
-                  ×
-                </div>
-              );
-            } else if (position === 0) {
-              // Open string marker
-              return (
-                <div
-                  key={`open-${string}`}
-                  className="absolute w-4 h-4 border-2 border-green-600 bg-white rounded-full"
-                  style={{
-                    left: `${string * stringSpacing - 8}px`,
-                    top: '-26px'
-                  }}
-                />
-              );
-            } else {
-              // Finger dot on fret
+            // Only render finger dots for positions 1 and above
+            if (position !== null && position > 0) {
               return (
                 <div
                   key={`fret-${string}-${position}`}
-                  className="absolute w-5 h-5 chord-dot rounded-full"
+                  className="absolute w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center"
                   style={{
-                    left: `${string * stringSpacing - 10}px`,
-                    top: `${position * fretHeight - fretHeight/2 - 10}px`
+                    left: `${string * 14 - 10}px`,
+                    top: `${position * 25 - 25/2 - 10}px`
                   }}
-                />
+                >
+                  <span className="text-white text-xs font-bold">{position}</span>
+                </div>
               );
             }
+            return null;
           })}
         </div>
       </div>
@@ -208,7 +316,12 @@ export function ChordDisplayScreen() {
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-xl text-muted-foreground">Loading chord data...</p>
+            <p className="text-xl text-foreground mb-2">Scraping tab data...</p>
+            <p className="text-muted-foreground">Fetching chord progressions and sheet music from the web</p>
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Music className="w-4 h-4" />
+              <span>This may take a few seconds</span>
+            </div>
           </div>
         </main>
       </div>
@@ -257,17 +370,62 @@ export function ChordDisplayScreen() {
             <h1 className="text-3xl font-bold text-foreground">Chord Analysis Results</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" className="rounded-2xl border-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-2xl border-2 px-20 min-w-[400px]"
+              onClick={() => setShowSearch(!showSearch)}
+            >
+              <Search className="w-4 h-4 mr-2" />
+              Find Song
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-2xl border-2"
+              onClick={handleShareUrl}
+            >
               <Share className="w-4 h-4 mr-2" />
               Share
-            </Button>
-            <Button size="sm" className="rounded-2xl">
-              <Download className="w-4 h-4 mr-2" />
-              Save
             </Button>
           </div>
         </div>
       </header>
+
+      {/* Search Interface */}
+      {showSearch && (
+        <div className="px-8 py-4 bg-muted/30 border-b">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">Search for Songs</h3>
+              <SongSearchComponent 
+                onSongSelect={handleSongSelect}
+                placeholder="Search by song title or artist..."
+                className="max-w-2xl w-full"
+              />
+            </div>
+            
+            {popularSongs.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">Popular Songs:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {popularSongs.map((song) => (
+                    <Button
+                      key={song._id}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-2xl"
+                      onClick={() => handleSongSelect(song)}
+                    >
+                      {song.title} - {song.artist}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 px-8 py-8">
@@ -320,36 +478,58 @@ export function ChordDisplayScreen() {
             </CardContent>
           </Card>
 
-          {/* toggle options */}
-          <Card className="mb-8 rounded-3xl indie-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl flex items-center gap-3">
-                  <Guitar className="w-6 h-6 text-primary" />
-                  Display Options
-                </CardTitle>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      id="tabs-mode"
-                      checked={showTabs}
-                      onCheckedChange={setShowTabs}
-                    />
-                    <Label htmlFor="tabs-mode" className="text-base">
-                      {showTabs ? 'Tabs View' : 'Chords View'}
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
 
-          <Tabs defaultValue="chords" className="space-y-8">
+          <Tabs defaultValue="sheet" className="space-y-8">
             <TabsList className="grid w-full grid-cols-3 rounded-2xl p-2 h-14">
-              <TabsTrigger value="chords" className="rounded-xl text-base">Chord Progression</TabsTrigger>
-              <TabsTrigger value="diagram" className="rounded-xl text-base">Interactive Diagrams</TabsTrigger>
               <TabsTrigger value="sheet" className="rounded-xl text-base">Sheet Music</TabsTrigger>
+              <TabsTrigger value="diagram" className="rounded-xl text-base">Interactive Diagrams</TabsTrigger>
+              <TabsTrigger value="chords" className="rounded-xl text-base">Chord Progression</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="sheet">
+              <Card className="rounded-3xl indie-shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center gap-3">
+                    <Music className="w-6 h-6" />
+                    Sheet Music
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {tabData.tabContent ? (
+                    <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 min-h-[600px] max-h-[800px] overflow-y-auto">
+                      <pre className="text-black text-sm leading-relaxed whitespace-pre-wrap font-mono">
+                        {tabData.tabContent}
+                      </pre>
+                      {tabData.sourceUrl && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-xs text-gray-600 mb-2">Source:</p>
+                          <a 
+                            href={tabData.sourceUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 text-sm underline"
+                          >
+                            {tabData.sourceUrl}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20">
+                      <div className="indie-pulse">
+                        <Music className="w-20 h-20 mx-auto mb-6 text-muted-foreground/60" />
+                      </div>
+                      <p className="text-2xl text-muted-foreground mb-4">
+                        No sheet music available
+                      </p>
+                      <p className="text-muted-foreground text-lg">
+                        Sheet music content not found for this tab
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="chords" className="space-y-8">
               {/* chord buttons */}
@@ -442,8 +622,8 @@ export function ChordDisplayScreen() {
                           {tabData.chords[safeSelectedChord]?.name || 'Unknown'} Chord
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="flex justify-center py-8">
-                        <div className="scale-150 transform">
+                      <CardContent className="flex justify-center py-12">
+                        <div className="scale-125 transform">
                           {getChordDiagram(tabData.chords[safeSelectedChord]?.fingering || 'x32010', tabData.chords[safeSelectedChord]?.name || 'Unknown')}
                         </div>
                       </CardContent>
@@ -508,12 +688,14 @@ export function ChordDisplayScreen() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                         {tabData.chords.map((chord: any, index: number) => (
                           <div
                             key={index}
-                            className={`cursor-pointer transition-all duration-300 rounded-2xl ${
-                              safeSelectedChord === index ? 'ring-4 ring-primary/30 scale-105' : 'hover:ring-2 hover:ring-primary/20 hover:scale-102'
+                            className={`cursor-pointer transition-all duration-300 rounded-xl p-3 ${
+                              safeSelectedChord === index 
+                                ? 'ring-2 ring-orange-500 bg-orange-50 scale-105' 
+                                : 'hover:ring-2 hover:ring-orange-200 hover:bg-orange-25 hover:scale-102'
                             }`}
                             onClick={() => setSelectedChord(index)}
                           >
@@ -531,44 +713,6 @@ export function ChordDisplayScreen() {
                   <p className="text-muted-foreground">This tab doesn't contain chord fingering information</p>
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value="sheet">
-              <Card className="rounded-3xl indie-shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-2xl flex items-center gap-3">
-                    <Music className="w-6 h-6" />
-                    Sheet Music
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {tabData.tabContent ? (
-                    <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 max-h-96 overflow-y-auto">
-                      <div 
-                        className="prose prose-sm max-w-none text-black"
-                        dangerouslySetInnerHTML={{ __html: tabData.tabContent }}
-                        style={{
-                          fontFamily: 'monospace',
-                          whiteSpace: 'pre-wrap',
-                          lineHeight: '1.4'
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="text-center py-20">
-                      <div className="indie-pulse">
-                        <Music className="w-20 h-20 mx-auto mb-6 text-muted-foreground/60" />
-                      </div>
-                      <p className="text-2xl text-muted-foreground mb-4">
-                        No sheet music available
-                      </p>
-                      <p className="text-muted-foreground text-lg">
-                        Sheet music content not found for this tab
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>

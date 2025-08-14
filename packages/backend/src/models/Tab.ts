@@ -140,7 +140,7 @@ TabSchema.virtual('searchString').get(function() {
   return `${this.title} ${this.artist} ${this.album || ''}`.toLowerCase();
 });
 
-// Method to check if tab data is fresh (scraped within last 7 days)
+// Method to check if tab data is fresh
 TabSchema.methods.isFresh = function(): boolean {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);

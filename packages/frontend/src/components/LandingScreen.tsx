@@ -21,8 +21,14 @@ export function LandingScreen() {
             <span className="text-3xl font-bold text-foreground tracking-tight">ChordZap</span>
           </div>
           <nav className="flex items-center gap-8">
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors font-medium">Features</a>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors font-medium">About</a>
+            <a 
+              href="https://github.com/CS5610-WebDev-Summer25/group-project-backend-individual-version-RohanSkaria" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
+              About
+            </a>
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors font-medium">Contact</a>
           </nav>
         </div>
@@ -52,7 +58,7 @@ export function LandingScreen() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+          <div className="flex justify-center">
             <Button 
               size="lg" 
               className="px-10 py-6 text-lg rounded-2xl indie-shadow-lg hover:indie-shadow transition-all duration-300 hover:scale-105"
@@ -61,39 +67,6 @@ export function LandingScreen() {
               <Music className="w-6 h-6 mr-3" />
               Start Listening
             </Button>
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="px-10 py-6 text-lg rounded-2xl border-2 hover:bg-primary/5 transition-all duration-300 hover:scale-105"
-            >
-              <Heart className="w-5 h-5 mr-3" />
-              Watch Demo
-            </Button>
-          </div>
-
-          {/* Features */}
-          <div className="grid md:grid-cols-3 gap-12 mt-20">
-            <div className="text-center group">
-              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 indie-shadow group-hover:indie-shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:rotate-3">
-                <Zap className="w-10 h-10 text-primary" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-4 text-foreground">Lightning Fast</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed">Real-time chord detection that keeps up with your practice sessions</p>
-            </div>
-            <div className="text-center group">
-              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 indie-shadow group-hover:indie-shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:-rotate-3">
-                <Music className="w-10 h-10 text-primary" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-4 text-foreground">Any Audio Source</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed">Works with live instruments, recordings, or Spotify streams</p>
-            </div>
-            <div className="text-center group">
-              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 indie-shadow group-hover:indie-shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:rotate-3">
-                <Guitar className="w-10 h-10 text-primary" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-4 text-foreground">Made for Musicians</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed">Clean chord diagrams and musician-friendly interface</p>
-            </div>
           </div>
         </div>
       </main>

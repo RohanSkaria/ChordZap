@@ -15,6 +15,11 @@ interface DetectedSong {
   }>;
   tabUrl?: string;
   source?: string;
+  spotify?: {
+    id?: string;
+    url?: string;
+  };
+  confidence?: number;
 }
 
 interface UseSongDetectionReturn {
@@ -25,7 +30,7 @@ interface UseSongDetectionReturn {
   startSession: () => Promise<void>;
   endSession: () => Promise<void>;
   detectSong: (mockSongData: DetectedSong) => Promise<DetectedSong | null>;
-  detectFromAudio: (samples: number[], sampleRate?: number) => Promise<DetectedSong | null>;
+  detectFromAudio: (audioBuffer: ArrayBuffer) => Promise<DetectedSong | null>;
   clearError: () => void;
 }
 
@@ -41,10 +46,10 @@ export function useSongDetection(): UseSongDetectionReturn {
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const session = await sessionApi.createSession({ sessionId });
       setCurrentSession(session);
-      console.log('session started:', session.sessionId);
+      console.log('🎵 Session started:', session.sessionId);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'failed to start session');
-      console.error('session start error:', err);
+      setError(err.response?.data?.message || 'Failed to start session');
+      console.error('Session start error:', err);
     }
   }, []);
 
@@ -54,16 +59,16 @@ export function useSongDetection(): UseSongDetectionReturn {
     try {
       await sessionApi.endSession(currentSession.sessionId);
       setCurrentSession(null);
-      console.log('session ended');
+      console.log('🎵 Session ended');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'failed to end session');
-      console.error('session end error:', err);
+      setError(err.response?.data?.message || 'Failed to end session');
+      console.error('Session end error:', err);
     }
   }, [currentSession]);
 
   const detectSong = useCallback(async (mockSongData: DetectedSong): Promise<DetectedSong | null> => {
     if (!currentSession) {
-      setError('no active session - please start session first');
+      setError('No active session - please start session first');
       return null;
     }
 
@@ -71,7 +76,6 @@ export function useSongDetection(): UseSongDetectionReturn {
       setIsDetecting(true);
       setError(null);
 
-      // first, save the song to database
       const savedSong = await songApi.createSong({
         title: mockSongData.title,
         artist: mockSongData.artist,
@@ -83,26 +87,22 @@ export function useSongDetection(): UseSongDetectionReturn {
         source: mockSongData.source || 'Manual'
       });
 
-      // then add it to the current session
       await sessionApi.addDetectedSong(
         currentSession.sessionId,
         savedSong._id,
-        0.8, // mock confidence
+        mockSongData.confidence || 0.8,
         'microphone'
       );
 
-      // update local state
       const songWithId = { ...mockSongData, id: savedSong._id };
       setDetectedSongs(prev => [songWithId, ...prev]);
 
-      console.log('song detected and saved:', savedSong.title);
+      console.log('🎵 Song detected and saved:', savedSong.title);
       return songWithId;
 
     } catch (err: any) {
-      // if song already exists, that's okay add to session
       if (err.response?.status === 409) {
         try {
-          // try to find existing song
           const existingSongs = await songApi.getSongs({ 
             search: `${mockSongData.title} ${mockSongData.artist}`,
             limit: 1
@@ -113,7 +113,7 @@ export function useSongDetection(): UseSongDetectionReturn {
             await sessionApi.addDetectedSong(
               currentSession.sessionId,
               existingSong._id,
-              0.8,
+              mockSongData.confidence || 0.8,
               'microphone'
             );
             
@@ -122,21 +122,21 @@ export function useSongDetection(): UseSongDetectionReturn {
             return songWithId;
           }
         } catch (findError) {
-          console.error('error finding existing song:', findError);
+          console.error('Error finding existing song:', findError);
         }
       }
       
-      setError(err.response?.data?.message || 'failed to detect song');
-      console.error('song detection error:', err);
+      setError(err.response?.data?.message || 'Failed to detect song');
+      console.error('Song detection error:', err);
       return null;
     } finally {
       setIsDetecting(false);
     }
   }, [currentSession]);
 
-  const detectFromAudio = useCallback(async (samples: number[], sampleRate?: number): Promise<DetectedSong | null> => {
+  const detectFromAudio = useCallback(async (audioBuffer: ArrayBuffer): Promise<DetectedSong | null> => {
     if (!currentSession) {
-      setError('no active session - please start session first');
+      setError('No active session - please start session first');
       return null;
     }
 
@@ -144,28 +144,37 @@ export function useSongDetection(): UseSongDetectionReturn {
       setIsDetecting(true);
       setError(null);
 
-      console.log('🎧 [FRONTEND] Starting audio detection...');
-      console.log(`🎧 [FRONTEND] Sending ${samples.length} samples at ${sampleRate}Hz to backend`);
+      console.log('🎵 [DETECTION] Starting audio detection...');
+      console.log(`🎵 [DETECTION] Sending ${(audioBuffer.byteLength / 1024).toFixed(2)}KB WAV buffer to backend`);
       
-      // call backend audio analysis (acrcloud or local)
-      const analysis = await audioApi.analyze(samples, sampleRate);
+      // Extract audio samples from WAV ArrayBuffer
+      // WAV format: 44-byte header + 16-bit PCM samples
+      const view = new DataView(audioBuffer);
+      const samples: number[] = [];
+      
+      // Skip 44-byte WAV header and read 16-bit samples
+      for (let i = 44; i < audioBuffer.byteLength; i += 2) {
+        const sample = view.getInt16(i, true) / 32767; // Convert to float -1.0 to 1.0
+        samples.push(sample);
+      }
+      
+      console.log(`🎵 [DETECTION] Extracted ${samples.length} audio samples from WAV buffer`);
+      const analysis = await audioApi.analyze(samples, 44100);
       const result = analysis.song;
+
+      console.log('🎵 [DETECTION] ✅ Received response from backend:');
+      console.log(`🎵 [DETECTION] Song: "${result.title}" by ${result.artist}`);
+      console.log(`🎵 [DETECTION] Source: ${result.source}`);
+      console.log(`🎵 [DETECTION] Confidence: ${analysis.confidence}%`);
       
-      console.log('🎧 [FRONTEND] ✅ Received response from backend:');
-      console.log(`🎧 [FRONTEND] Song: "${result.title}" by ${result.artist}`);
-      console.log(`🎧 [FRONTEND] Source: ${result.source}`);
-      console.log(`🎧 [FRONTEND] Confidence: ${analysis.confidence}`);
-      
-      if (result.source === 'API Detection') {
-        console.log('🎧 [FRONTEND] 🎉 THIS IS REAL API DATA! ACR Cloud successfully identified the song!');
-      } else if (result.source === 'Mock Data') {
-        console.log('🎧 [FRONTEND] ℹ️  This is mock/fallback data - ACR API did not recognize the song');
+      if (result.source === 'ACRCloud' || result.source === 'API Detection') {
+        console.log('🎵 [DETECTION] 🎉 Real ACRCloud detection - song identified!');
+      } else {
+        console.log('🎵 [DETECTION] ℹ️ Mock/fallback data - ACRCloud did not recognize the song');
       }
 
-      // ensure chords array exists for UI
       const chords = Array.isArray(result.chords) ? result.chords : [];
 
-      // save or upsert song in db
       const savedSong = await songApi.createSong({
         title: result.title,
         artist: result.artist,
@@ -174,7 +183,7 @@ export function useSongDetection(): UseSongDetectionReturn {
         duration: result.duration,
         chords,
         tabUrl: result.tabUrl,
-        source: result.source || 'API Detection'
+        source: result.source || 'ACRCloud'
       });
 
       await sessionApi.addDetectedSong(
@@ -193,14 +202,16 @@ export function useSongDetection(): UseSongDetectionReturn {
         duration: savedSong.duration,
         chords: savedSong.chords,
         tabUrl: savedSong.tabUrl,
-        source: savedSong.source
+        source: savedSong.source,
+        spotify: result.spotify,
+        confidence: analysis.confidence
       };
 
       setDetectedSongs(prev => [songWithId, ...prev]);
       return songWithId;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'failed to detect from audio');
-      console.error('audio detection error:', err);
+      setError(err.response?.data?.message || 'Failed to detect from audio');
+      console.error('Audio detection error:', err);
       return null;
     } finally {
       setIsDetecting(false);

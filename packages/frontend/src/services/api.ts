@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { API_ENDPOINTS } from '@monorepo/shared';
 
 // create axios instance with base configuration
 const api = axios.create({
@@ -69,6 +68,38 @@ export const songApi = {
   // delete song
   deleteSong: async (id: string) => {
     const response = await api.delete(`/api/songs/${id}`);
+    return response.data;
+  },
+
+  // seed database with popular songs
+  seedPopularSongs: async () => {
+    const response = await api.post('/api/songs/seed');
+    return response.data;
+  },
+
+  // get popular songs (most detected)
+  getPopularSongs: async (limit?: number) => {
+    const response = await api.get('/api/songs/popular', { 
+      params: { limit }
+    });
+    return response.data;
+  },
+
+  // search songs with autocomplete
+  searchSongs: async (query: string, limit: number = 10) => {
+    const response = await api.get('/api/songs', {
+      params: { 
+        search: query,
+        limit,
+        page: 1
+      }
+    });
+    return response.data;
+  },
+
+  // get full tab data for a song with scraping
+  getTabData: async (songId: string) => {
+    const response = await api.get(`/api/songs/${songId}/tab-data`);
     return response.data;
   }
 };
@@ -190,6 +221,26 @@ export const tabApi = {
     
     console.log('🌐 [NETWORK] Tab suggestions response received');
     return response.data as { success: boolean; query: string; suggestions: any[] };
+  },
+
+  // get tab by song title and artist with fallback to Wonderwall
+  getTabBySong: async (title: string, artist: string) => {
+    console.log('🌐 [NETWORK] Making API request to /api/tabs/by-song');
+    console.log(`🌐 [NETWORK] Looking up: "${title}" by ${artist}`);
+    
+    const encodedTitle = encodeURIComponent(title);
+    const encodedArtist = encodeURIComponent(artist);
+    
+    const response = await api.get(`/api/tabs/by-song/${encodedTitle}/${encodedArtist}`, {
+      headers: {
+        'X-ChordZap-Action': 'Tab-Lookup-By-Song',
+        'X-ChordZap-Title': title,
+        'X-ChordZap-Artist': artist,
+      }
+    });
+    
+    console.log('🌐 [NETWORK] Tab lookup by song response received');
+    return response.data as { success: boolean; tab: any; isFallback?: boolean };
   },
 
   // health check for scraper

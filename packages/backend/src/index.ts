@@ -24,8 +24,25 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('combined'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Custom middleware to check payload size before parsing
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const contentLength = parseInt(req.headers['content-length'] || '0');
+  const maxSize = 25 * 1024 * 1024; // 25MB
+  
+  if (contentLength > maxSize) {
+    console.log(`🚫 [MIDDLEWARE] Request too large: ${(contentLength / 1024 / 1024).toFixed(2)}MB`);
+    return res.status(413).json({ 
+      message: 'Payload too large', 
+      maxSize: '25MB',
+      receivedSize: `${(contentLength / 1024 / 1024).toFixed(2)}MB`
+    });
+  }
+  return next();
+});
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // trust proxy for accurate ip addresses
 app.set('trust proxy', true);

@@ -88,7 +88,7 @@ class GuitarTabsScraper {
 
       // If not in database, scrape from GuitarTabs.cc
       console.log(`🎸 [SCRAPER] Not found in database, scraping GuitarTabs.cc...`);
-      const scrapedResults = await this.scrapeFromWebsite(query, maxResults);
+      const scrapedResults = await this.scrapeFromWebsite(query);
       
       // Save scraped results to database
       if (scrapedResults.data && scrapedResults.data.length > 0) {
@@ -124,6 +124,29 @@ class GuitarTabsScraper {
     }
   }
 
+  async getTabByTitleArtist(title: string, artist: string): Promise<TabData | null> {
+    try {
+      console.log(`🎸 [SCRAPER] Looking up tab: "${title}" by ${artist}`);
+      
+      // Search database for matching title and artist
+      const dbTab = await Tab.findOne({
+        title: new RegExp(title, 'i'),
+        artist: new RegExp(artist, 'i')
+      }).sort({ rating: -1, scrapedAt: -1 });
+
+      if (dbTab) {
+        console.log(`🎸 [SCRAPER] Found tab in database: ${dbTab.title} by ${dbTab.artist}`);
+        return this.convertDbTabToTabData(dbTab);
+      }
+
+      console.log(`🎸 [SCRAPER] Tab not found in database for "${title}" by ${artist}`);
+      return null;
+    } catch (error) {
+      console.error('🎸 [SCRAPER] Tab lookup error:', error);
+      return null;
+    }
+  }
+
   private async searchDatabase(query: string): Promise<TabData[]> {
     try {
       const searchTerms = query.toLowerCase().split(' ');
@@ -149,21 +172,17 @@ class GuitarTabsScraper {
     }
   }
 
-  private async scrapeFromWebsite(query: string, maxResults: number): Promise<SearchResult> {
+  private async scrapeFromWebsite(query: string): Promise<SearchResult> {
     try {
       const searchTerms = query.toLowerCase().split(' ');
       let artist = '';
       let title = '';
       
-      // Try to determine artist and title from query
       if (searchTerms.length >= 2) {
-        // For multi-word queries, try different combinations
-        // First try: first two words as artist, rest as title
         if (searchTerms.length >= 3) {
           artist = searchTerms.slice(0, 2).join(' ');
           title = searchTerms.slice(2).join(' ');
         } else {
-          // If only 2 words, assume first is artist, second is title
           artist = searchTerms[0];
           title = searchTerms[1];
         }
@@ -171,7 +190,6 @@ class GuitarTabsScraper {
         title = query;
       }
 
-      // Try different URL patterns
       const urlPatterns = [
         `${this.baseUrl}/tabs/${artist.charAt(0)}/${artist.replace(/\s+/g, '_')}/${title.replace(/\s+/g, '_')}_crd.html`,
         `${this.baseUrl}/tabs/${title.charAt(0)}/${title.replace(/\s+/g, '_')}_crd.html`,
@@ -194,8 +212,7 @@ class GuitarTabsScraper {
         }
       }
 
-      // If direct URL patterns fail, try search functionality
-      return await this.performWebSearch(query, maxResults);
+      return await this.performWebSearch(query);
     } catch (error) {
       console.error('🎸 [SCRAPER] Website scraping error:', error);
       return {
@@ -205,12 +222,10 @@ class GuitarTabsScraper {
     }
   }
 
-  private async performWebSearch(query: string, maxResults: number): Promise<SearchResult> {
+  private async performWebSearch(query: string): Promise<SearchResult> {
     try {
       console.log(`🎸 [SCRAPER] Performing web search for: ${query}`);
       
-      // For now, return empty results if direct URL scraping fails
-      // Real implementation would search the website's search functionality
       return {
         success: true,
         data: [],
@@ -224,7 +239,56 @@ class GuitarTabsScraper {
     }
   }
 
-  private async scrapeTabPage(url: string): Promise<TabData | null> {
+  private generatePossibleUrls(title: string, artist: string): string[] {
+    const cleanTitle = this.cleanForUrl(title);
+    const cleanArtist = this.cleanForUrl(artist);
+    const artistFirstLetter = cleanArtist.charAt(0).toLowerCase();
+    
+    const urls: string[] = [];
+    
+    urls.push(`https://www.guitartabs.cc/tabs/${artistFirstLetter}/${cleanArtist}/${cleanTitle}_crd.html`);
+    urls.push(`https://www.guitartabs.cc/tabs/${artistFirstLetter}/${cleanArtist}/${cleanTitle}_crd_ver_2.html`);
+    urls.push(`https://www.guitartabs.cc/tabs/${artistFirstLetter}/${cleanArtist}/${cleanTitle}_crd_ver_3.html`);
+    
+    const altTitle = title.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_');
+    const altArtist = artist.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_');
+    urls.push(`https://www.guitartabs.cc/tabs/${artistFirstLetter}/${altArtist}/${altTitle}_crd.html`);
+    
+    return urls;
+  }
+
+  private cleanForUrl(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
+
+  async findSongByGeneration(title: string, artist: string): Promise<TabData | null> {
+    const possibleUrls = this.generatePossibleUrls(title, artist);
+    
+    console.log(`🎸 [SCRAPER] Trying ${possibleUrls.length} possible URLs for "${title}" by ${artist}`);
+    
+    for (const url of possibleUrls) {
+      try {
+        console.log(`🎸 [SCRAPER] Attempting: ${url}`);
+        const result = await this.scrapeTabPage(url);
+        if (result) {
+          console.log(`🎸 [SCRAPER] ✅ Success with URL: ${url}`);
+          return result;
+        }
+      } catch (error) {
+        console.log(`🎸 [SCRAPER] ❌ Failed: ${url}`);
+
+      }
+    }
+    
+    console.log(`🎸 [SCRAPER] No valid URLs found for "${title}" by ${artist}`);
+    return null;
+  }
+
+  async scrapeTabPage(url: string): Promise<TabData | null> {
     try {
       console.log(`🎸 [SCRAPER] Scraping URL: ${url}`);
       
@@ -359,17 +423,24 @@ class GuitarTabsScraper {
     const chords: ChordInfo[] = [];
     const seenChords = new Set<string>();
 
-    // Find all chord links with class="ch"
-    $('a.ch').each((index, element) => {
-      const chordName = $(element).text().trim();
-      if (chordName && !seenChords.has(chordName)) {
-        seenChords.add(chordName);
-        chords.push({
-          name: chordName,
-          fingering: this.getChordFingering(chordName),
-          fret: 0,
-          difficulty: this.getChordDifficulty(chordName)
-        });
+    // Find all chord links with class="ch" and extract chord names from onmousemove attribute
+    $('a.ch').each((_, element) => {
+      const onmousemove = $(element).attr('onmousemove');
+      if (onmousemove) {
+        // Extract chord name from showAcc("Em",event) format
+        const match = onmousemove.match(/showAcc\("([^"]+)"/);
+        if (match && match[1]) {
+          const chordName = match[1];
+          if (!seenChords.has(chordName)) {
+            seenChords.add(chordName);
+            chords.push({
+              name: chordName,
+              fingering: this.getChordFingering(chordName),
+              fret: this.getChordFret(chordName),
+              difficulty: this.getChordDifficulty(chordName)
+            });
+          }
+        }
       }
     });
 
@@ -438,6 +509,16 @@ class GuitarTabsScraper {
 
   private getChordFingering(chordName: string): string {
     return this.basicChords[chordName] || 'x00000';
+  }
+
+  private getChordFret(chordName: string): number {
+    // Extract fret number from chord names like F#m, Bm, etc.
+    // Most open chords start at fret 0, barre chords usually higher
+    const barreChords = ['F', 'Fm', 'F7', 'B', 'Bm', 'B7'];
+    if (barreChords.includes(chordName)) {
+      return 1; // Most barre chords start at 1st fret
+    }
+    return 0; // Open chords
   }
 
   private getChordDifficulty(chordName: string): 'beginner' | 'intermediate' | 'advanced' {

@@ -137,7 +137,7 @@ SongSchema.statics.findOrCreate = async function(songData: Partial<ISong>) {
   }
 };
 
-// Static method to get popular songs (most detected)
+// Static method to get popular songs
 SongSchema.statics.getPopular = function(limit: number = 10) {
   return this.find({})
     .sort({ detectionCount: -1, lastDetected: -1 })

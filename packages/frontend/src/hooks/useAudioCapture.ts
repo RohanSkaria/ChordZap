@@ -23,7 +23,44 @@ export interface AudioCaptureHook {
   selectDevice: (deviceId: string) => Promise<void>;
   refreshDevices: () => Promise<void>;
   getAudioBuffer: () => Float32Array | null;
+  getWAVBuffer: () => ArrayBuffer | null;
   subscribe: (callback: (audioData: Float32Array) => void) => () => void;
+}
+
+function floatTo16BitPCM(output: DataView, offset: number, input: Float32Array) {
+  for (let i = 0; i < input.length; i++, offset += 2) {
+    const s = Math.max(-1, Math.min(1, input[i]));
+    output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+}
+
+function writeString(view: DataView, offset: number, string: string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+function encodeWAV(samples: Float32Array, sampleRate: number = 44100): ArrayBuffer {
+  const length = samples.length * 2;
+  const buffer = new ArrayBuffer(44 + length);
+  const view = new DataView(buffer);
+
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + length, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(view, 36, 'data');
+  view.setUint32(40, length, true);
+  floatTo16BitPCM(view, 44, samples);
+
+  return buffer;
 }
 
 export const useAudioCapture = (): AudioCaptureHook => {
@@ -47,8 +84,8 @@ export const useAudioCapture = (): AudioCaptureHook => {
   const animationFrameRef = useRef<number | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const lastLogTimeRef = useRef<number>(0);
+  const sampleRateRef = useRef<number>(44100);
 
-  
   const checkBrowserSupport = useCallback(() => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('Browser does not support audio recording');
@@ -58,7 +95,6 @@ export const useAudioCapture = (): AudioCaptureHook => {
     }
   }, []);
 
-  // Get available audio devices
   const getAudioDevices = useCallback(async (): Promise<AudioDevice[]> => {
     try {
       checkBrowserSupport();
@@ -129,6 +165,9 @@ export const useAudioCapture = (): AudioCaptureHook => {
 
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     audioContextRef.current = new AudioContextClass();
+    sampleRateRef.current = audioContextRef.current.sampleRate;
+    
+    console.log(`🎤 [AUDIO] Initialized AudioContext with sample rate: ${sampleRateRef.current}Hz`);
     
     analyserRef.current = audioContextRef.current.createAnalyser();
     analyserRef.current.fftSize = 2048;
@@ -139,27 +178,22 @@ export const useAudioCapture = (): AudioCaptureHook => {
     processorRef.current.onaudioprocess = (event) => {
       const inputBuffer = event.inputBuffer.getChannelData(0);
       
-      // Accumulate audio data for longer recordings
       accumulatedAudioRef.current.push(...inputBuffer);
       
-      // Keep only last 15 seconds of audio (44100 * 15)
-      const maxSamples = 44100 * 15;
+      const maxSamples = sampleRateRef.current * 15;
       if (accumulatedAudioRef.current.length > maxSamples) {
         accumulatedAudioRef.current = accumulatedAudioRef.current.slice(-maxSamples);
       }
       
-      // Update current buffer for real-time processing
       audioBufferRef.current = new Float32Array(inputBuffer);
       
-      // Notify subscribers of current frame
       subscribersRef.current.forEach(callback => {
         callback(audioBufferRef.current!);
       });
       
-      // Log every 2 seconds instead of every frame
       const now = Date.now();
       if (now - lastLogTimeRef.current > 2000) {
-        console.log(`🎙️ [AUDIO] Accumulated ${accumulatedAudioRef.current.length} samples (${(accumulatedAudioRef.current.length / 44100).toFixed(2)}s)`);
+        console.log(`🎤 [AUDIO] Recording... ${(accumulatedAudioRef.current.length / sampleRateRef.current).toFixed(1)}s captured`);
         lastLogTimeRef.current = now;
       }
     };
@@ -167,10 +201,8 @@ export const useAudioCapture = (): AudioCaptureHook => {
     return audioContextRef.current;
   }, []);
 
-
   const getMediaStream = useCallback(async (deviceId: string): Promise<MediaStream> => {
     if (deviceId === 'system') {
-
       return await navigator.mediaDevices.getDisplayMedia({
         video: false,
         audio: {
@@ -180,7 +212,6 @@ export const useAudioCapture = (): AudioCaptureHook => {
         } as any
       });
     } else {
-
       const constraints: MediaStreamConstraints = {
         audio: {
           deviceId: deviceId === 'default' ? undefined : { exact: deviceId },
@@ -195,7 +226,6 @@ export const useAudioCapture = (): AudioCaptureHook => {
     }
   }, []);
 
-
   const monitorAudioLevel = useCallback(() => {
     if (!analyserRef.current) return;
 
@@ -206,13 +236,12 @@ export const useAudioCapture = (): AudioCaptureHook => {
       
       analyserRef.current.getByteFrequencyData(dataArray);
       
-
       let sum = 0;
       for (let i = 0; i < dataArray.length; i++) {
         sum += dataArray[i] * dataArray[i];
       }
       const rms = Math.sqrt(sum / dataArray.length);
-      const level = (rms / 255) * 100; // Convert to percentage
+      const level = (rms / 255) * 100;
       
       setState(prev => ({ ...prev, audioLevel: level }));
       
@@ -221,7 +250,6 @@ export const useAudioCapture = (): AudioCaptureHook => {
 
     updateLevel();
   }, [state.isRecording]);
-
 
   const startRecording = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -233,20 +261,14 @@ export const useAudioCapture = (): AudioCaptureHook => {
         throw new Error('No audio device selected');
       }
 
-      // Clear accumulated audio buffer when starting new recording
       accumulatedAudioRef.current = [];
-      console.log('🎙️ [AUDIO] Cleared accumulated audio buffer - starting fresh recording');
+      console.log('🎤 [AUDIO] Starting new recording...');
 
-      // Initialize audio context
       const audioContext = initializeAudioContext();
-
       const stream = await getMediaStream(state.selectedDevice);
       mediaStreamRef.current = stream;
 
-      // Create audio source
       sourceRef.current = audioContext.createMediaStreamSource(stream);
-      
-
       sourceRef.current.connect(analyserRef.current!);
       sourceRef.current.connect(processorRef.current!);
       processorRef.current!.connect(audioContext.destination);
@@ -258,7 +280,6 @@ export const useAudioCapture = (): AudioCaptureHook => {
         error: null
       }));
 
-      // Start audio level monitoring
       monitorAudioLevel();
 
     } catch (error) {
@@ -272,21 +293,17 @@ export const useAudioCapture = (): AudioCaptureHook => {
     }
   }, [state.selectedDevice, checkBrowserSupport, initializeAudioContext, getMediaStream, monitorAudioLevel]);
 
-
   const stopRecording = useCallback(() => {
-
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
 
- 
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
 
- 
     if (sourceRef.current) {
       sourceRef.current.disconnect();
       sourceRef.current = null;
@@ -296,7 +313,6 @@ export const useAudioCapture = (): AudioCaptureHook => {
       processorRef.current.disconnect();
       processorRef.current = null;
     }
-
 
     if (audioContextRef.current) {
       audioContextRef.current.close();
@@ -308,32 +324,41 @@ export const useAudioCapture = (): AudioCaptureHook => {
       isRecording: false,
       audioLevel: 0
     }));
+
+    console.log(`🎤 [AUDIO] Recording stopped. Captured ${(accumulatedAudioRef.current.length / sampleRateRef.current).toFixed(1)}s of audio`);
   }, []);
 
-  // Select audio device
   const selectDevice = useCallback(async (deviceId: string) => {
     setState(prev => ({ ...prev, selectedDevice: deviceId }));
     
-
     if (state.isRecording) {
       stopRecording();
- 
       setTimeout(() => startRecording(), 100);
     }
   }, [state.isRecording, stopRecording, startRecording]);
 
-
   const getAudioBuffer = useCallback((): Float32Array | null => {
-    // Return the accumulated audio buffer instead of just the current frame
     if (accumulatedAudioRef.current.length === 0) {
-      console.log('🎙️ [AUDIO] No accumulated audio data available');
+      console.log('🎤 [AUDIO] No audio data available');
       return null;
     }
     
-    console.log(`🎙️ [AUDIO] Returning ${accumulatedAudioRef.current.length} samples (${(accumulatedAudioRef.current.length / 44100).toFixed(2)}s) of accumulated audio`);
+    console.log(`🎤 [AUDIO] Returning ${(accumulatedAudioRef.current.length / sampleRateRef.current).toFixed(1)}s of audio`);
     return new Float32Array(accumulatedAudioRef.current);
   }, []);
 
+  const getWAVBuffer = useCallback((): ArrayBuffer | null => {
+    if (accumulatedAudioRef.current.length === 0) {
+      console.log('🎤 [AUDIO] No audio data to convert to WAV');
+      return null;
+    }
+    
+    const audioData = new Float32Array(accumulatedAudioRef.current);
+    const wavBuffer = encodeWAV(audioData, sampleRateRef.current);
+    
+    console.log(`🎤 [AUDIO] Created WAV buffer: ${(wavBuffer.byteLength / 1024).toFixed(2)}KB from ${(audioData.length / sampleRateRef.current).toFixed(1)}s of audio`);
+    return wavBuffer;
+  }, []);
 
   const subscribe = useCallback((callback: (audioData: Float32Array) => void) => {
     subscribersRef.current.add(callback);
@@ -343,16 +368,13 @@ export const useAudioCapture = (): AudioCaptureHook => {
     };
   }, []);
 
-
   useEffect(() => {
     refreshDevices();
     
-
     return () => {
       stopRecording();
     };
-  }, [refreshDevices, stopRecording]);
-
+  }, []);
 
   useEffect(() => {
     const handleDeviceChange = () => {
@@ -373,6 +395,7 @@ export const useAudioCapture = (): AudioCaptureHook => {
     selectDevice,
     refreshDevices,
     getAudioBuffer,
+    getWAVBuffer,
     subscribe
   };
 };
