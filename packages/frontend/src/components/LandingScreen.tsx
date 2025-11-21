@@ -22,7 +22,7 @@ export function LandingScreen() {
           </div>
           <nav className="flex items-center gap-8">
             <a 
-              href="https://github.com/CS5610-WebDev-Summer25/group-project-backend-individual-version-RohanSkaria" 
+              href="https://github.com/RohanSkaria/ChordZap" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors font-medium"
