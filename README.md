@@ -1,4 +1,42 @@
-# Monorepo for ChordZap
+# ChordZap - Project Summary
+
+## Overview
+
+**ChordZap** is a Shazam-style web application designed for guitarists to instantly discover chord progressions from any song. Built as a full-stack TypeScript application, it combines real-time audio recognition with automated guitar tab scraping to provide an end-to-end learning experience.
+
+## Key Features
+
+- **Real-time Audio Recognition**: Captures audio through the browser microphone and identifies songs using ACRCloud's music recognition API
+- **Automated Tab Scraping**: Automatically fetches guitar tabs from multiple sources (Ultimate Guitar, EChords) after song identification
+- **Chord Visualization**: Displays chord diagrams and progressions in an intuitive, guitar-focused interface
+- **Session Management**: Tracks listening sessions and detected songs with MongoDB persistence
+- **Modern Tech Stack**: React frontend with TypeScript, Express.js backend, and MongoDB database
+
+## Technical Architecture
+
+- **Frontend**: React with TypeScript, Tailwind CSS, custom audio capture hooks
+- **Backend**: Express.js with TypeScript, RESTful API architecture
+- **Database**: MongoDB with Mongoose ODM
+- **External APIs**: ACRCloud for audio recognition, web scraping for tab retrieval
+- **Deployment**: Google Cloud Platform (App Engine)
+
+## Limitations
+
+**Important Note**: This is a prototype/educational project with several limitations:
+
+- **API Dependencies**: Relies on third-party services (ACRCloud) which have rate limits, usage costs, and potential downtime
+- **Scraping Fragility**: Web scraping is inherently fragile—tab websites may change their structure, break functionality, or implement anti-scraping measures
+- **Audio Quality Dependency**: Recognition accuracy heavily depends on audio quality, background noise, and microphone capabilities
+- **Limited Coverage**: May struggle with live performances, covers, remixes, or less popular songs not in the recognition database
+- **No Authentication**: Currently lacks user accounts, authentication, or personalized features
+- **Browser-Only**: Requires browser microphone access and cannot function offline
+- **Legal Considerations**: Web scraping may violate terms of service of some tab websites
+- **No Testing Suite**: Lacks comprehensive unit and integration tests
+- **Production Readiness**: Not optimized for high-scale production use or enterprise deployment
+
+This project serves as a demonstration of full-stack development skills and integration of multiple technologies, but would require significant additional work for commercial viability.
+
+
 
 # Iter2:
 
