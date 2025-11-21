@@ -29,7 +29,7 @@ export function LandingScreen() {
             >
               About
             </a>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors font-medium">Contact</a>
+            <button className="text-muted-foreground hover:text-foreground transition-colors font-medium">Contact</button>
           </nav>
         </div>
       </header>

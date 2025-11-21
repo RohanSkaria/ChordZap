@@ -16,6 +16,8 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+!.env.example
 
 # Logs
 npm-debug.log*
@@ -62,5 +64,9 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# Deployment files
-app.yaml
+# Deployment files (with sensitive credentials)
+# Note: app.yaml files are sanitized but should not contain real credentials
+# Use environment variables or Google Cloud Console for production secrets
+packages/*/app.yaml
+*.yaml.local
+*.yaml.production

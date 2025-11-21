@@ -75,7 +75,7 @@ const SongSchema = new Schema<ISong>({
   },
   source: { 
     type: String,
-    enum: ['Ultimate Guitar', 'Songsterr', 'Manual', 'API Detection', 'Mock Data', 'Frontend Mock'],
+    enum: ['Ultimate Guitar', 'Songsterr', 'Manual', 'API Detection', 'Mock Data', 'Frontend Mock', 'GuitarTabs.cc'],
     default: 'Manual'
   },
   detectionCount: {

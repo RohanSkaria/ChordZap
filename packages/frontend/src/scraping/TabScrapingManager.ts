@@ -54,9 +54,7 @@ export class TabScrapingManager {
       rateLimitStatus: 'ok'
     });
 
-    // TODO: Add other scrapers
-    // const songsterr = new SongsterrScraper();
-    // this.scrapers.set('songsterr', songsterr);
+
     
     this.logger.log('info', `Initialized ${this.scrapers.size} scrapers`, 'manager');
   }

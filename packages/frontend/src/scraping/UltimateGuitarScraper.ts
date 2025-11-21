@@ -33,8 +33,6 @@ export class UltimateGuitarScraper extends BaseScraper {
       per_page: String(options.maxResults || 20)
     });
 
-    // simluate logic
-    
     const mockResults = await this.getMockSearchResults(query, options);
     
     return {
@@ -44,7 +42,6 @@ export class UltimateGuitarScraper extends BaseScraper {
   }
 
   private async performGetTab(id: string): Promise<ScrapingResult> {
-    // mock implementation
     const mockTab = await this.getMockTabData(id);
     
     return {
@@ -66,7 +63,6 @@ export class UltimateGuitarScraper extends BaseScraper {
   }
 
   private async getMockSearchResults(query: string, options: ScrapingOptions): Promise<TabData[]> {
-    // simulate api delay
     await this.sleep(500 + Math.random() * 1000);
 
     const songs = [
@@ -96,7 +92,6 @@ export class UltimateGuitarScraper extends BaseScraper {
       }
     ];
 
-    // filter songs based on query
     const filteredSongs = songs.filter(song => 
       song.title.toLowerCase().includes(query.toLowerCase()) ||
       song.artist.toLowerCase().includes(query.toLowerCase())
@@ -126,10 +121,7 @@ export class UltimateGuitarScraper extends BaseScraper {
   }
 
   private async getMockTabData(id: string): Promise<TabData | null> {
-    // simulate api delay
     await this.sleep(300 + Math.random() * 700);
-
-    // extract song info from ID (mock implementation)
     const [, artist, title] = id.split('_');
     
     if (!artist || !title) return null;
@@ -161,7 +153,6 @@ export class UltimateGuitarScraper extends BaseScraper {
   }
 
   private generateMockChords(songTitle: string): ChordInfo[] {
-    // different chord progressions based on song
     const progressions: Record<string, ChordInfo[]> = {
       'Wonderwall': [
         { name: 'Em7', fingering: '022030', difficulty: 'beginner' },
@@ -247,39 +238,20 @@ ${chords.map(chord => `${chord.name}: ${chord.fingering}`).join('\n')}
     return difficulties[Math.floor(Math.random() * difficulties.length)];
   }
 
-  // real scraping methods (would be used server-side)
   private async scrapeSearchPage(url: string): Promise<any[]> {
-
     throw new Error('Direct scraping not available in browser environment');
   }
 
   private async scrapeTabPage(url: string): Promise<any> {
-
     throw new Error('Direct scraping not available in browser environment');
   }
 
   private parseSearchResults(html: string): any[] {
-    // parse ultimate guitar search results HTML
     const results: any[] = [];
-    
-    // Mock parsing logic
-    // In reality, this would:
-    // 1. Parse the HTML with a DOM parser
-    // 2. Extract song information from search result elements
-    // 3. Extract ratings, difficulty, type, etc.
-    // 4. Return structured data
-    
     return results;
   }
 
   private parseTabContent(html: string): any {
-    // Parse Ultimate Guitar tab page HTML
-    // This would extract:
-    // - Song metadata
-    // - Chord diagrams
-    // - Tab content
-    // - Ratings and comments
-    
     const tabData = {
       chords: [],
       content: '',
@@ -292,17 +264,12 @@ ${chords.map(chord => `${chord.name}: ${chord.fingering}`).join('\n')}
   // helper methods for real scraping
   private extractChordDiagrams(html: string): ChordInfo[] {
     const chords: ChordInfo[] = [];
-    
-    // this would parse chord diagram elements from UG HTML
-    // UG typically has chord diagrams in a specific format
-    
     return chords;
   }
 
   private extractTabSections(content: string): TabSection[] {
     const sections: TabSection[] = [];
     
-
     const sectionRegex = /\[([^\]]+)\]/g;
     let match;
     
@@ -310,7 +277,6 @@ ${chords.map(chord => `${chord.name}: ${chord.fingering}`).join('\n')}
       const sectionName = match[1];
       const sectionStart = match.index;
       
-     
       const nextMatch = sectionRegex.exec(content);
       const sectionEnd = nextMatch ? nextMatch.index : content.length;
       
@@ -343,11 +309,8 @@ ${chords.map(chord => `${chord.name}: ${chord.fingering}`).join('\n')}
     return `${this.apiBase}${this.tabEndpoint}?tab_id=${tabId}`;
   }
 
-  // Rate limiting 
   protected async enforceRateLimit(): Promise<void> {
-    // Ultimate Guitar has stricter rate limiting
     await super.enforceRateLimit();
-    
     await this.sleep(100 + Math.random() * 200);
   }
 }

@@ -4,13 +4,11 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { ArrowLeft, Share, Play, Music, Star, Guitar, Hash, Loader2, AlertCircle, Search } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { tabApi, songApi } from '../services/api';
 import { SongSearchComponent } from './search/SongSearchComponent';
-import React from 'react';
 
 interface TabData {
   id: string;
@@ -53,7 +51,6 @@ export function ChordDisplayScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedChord, setSelectedChord] = useState(0);
-  const [showTabs, setShowTabs] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [popularSongs, setPopularSongs] = useState<any[]>([]);
 
@@ -76,13 +73,10 @@ export function ChordDisplayScreen() {
         if (locationData && locationData.title && locationData.artist) {
           title = locationData.title;
           artist = locationData.artist;
-          console.log(`🎵 [CHORD DISPLAY] Using song from navigation: "${title}" by ${artist}`);
         } else if (songId) {
-          console.log(`🎵 [CHORD DISPLAY] Song ID provided but no navigation data, falling back to Wonderwall`);
           title = 'Wonderwall';
           artist = 'Oasis';
         } else {
-          console.log(`🎵 [CHORD DISPLAY] No song info provided, falling back to Wonderwall`);
           title = 'Wonderwall';
           artist = 'Oasis';
         }
@@ -94,9 +88,7 @@ export function ChordDisplayScreen() {
           setTabData(response.tab);
           
           if (response.isFallback) {
-            console.log(`🎵 [CHORD DISPLAY] Using Wonderwall fallback data instead of "${title}" by ${artist}`);
-          } else {
-            console.log(`🎵 [CHORD DISPLAY] Successfully loaded tab for "${title}" by ${artist}`);
+            console.log(`Using Wonderwall fallback data instead of "${title}" by ${artist}`);
           }
         } else {
           setError('No tab data available');
@@ -211,8 +203,6 @@ export function ChordDisplayScreen() {
   const handleShareUrl = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      // You could add a toast notification here if you have one
-      console.log('URL copied to clipboard');
       alert('URL copied to clipboard!');
     } catch (error) {
       console.error('Failed to copy URL:', error);

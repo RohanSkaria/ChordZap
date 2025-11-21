@@ -34,8 +34,7 @@ export class EChordsScraper extends BaseScraper {
         'type': 'song'
       });
 
-      // For demo purposes, providing enhanced mock data that simulates E-Chords results
-      // In a real implementation, you would make HTTP requests to e-chords.com
+   
       const mockResults = await this.generateEChordsResults(query, options);
       
       return {
